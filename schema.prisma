@@ -1,0 +1,58 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  portfolios Portfolio[]
+
+  @@map("users")
+}
+
+model Portfolio {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets Asset[]
+
+  @@map("portfolios")
+}
+
+enum ContentOrigin {
+  ai
+  non_ai @map("non-ai")
+
+  @@map("content_origin")
+}
+
+model Asset {
+  id            String        @id @default(cuid())
+  portfolioId   String        @map("portfolio_id")
+  title         String
+  description   String?
+  keywords      String[]      @default([])
+  contentOrigin ContentOrigin @map("content_origin")
+  fileUrl       String        @map("file_url")
+  metadataScore Float         @default(0) @map("metadata_score")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@map("assets")
+}

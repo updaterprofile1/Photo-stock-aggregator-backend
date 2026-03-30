@@ -1,1 +1,280 @@
-# Photo-stock-aggregator-backend
+# photo-stock-aggregator
+
+A production-ready Express + Prisma + PostgreSQL API for managing stock photo portfolios. Images are uploaded to **Supabase Storage**; metadata is stored in **PostgreSQL** via Prisma ORM.
+
+---
+
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [Database Setup](#database-setup)
+- [Supabase Storage Setup](#supabase-storage-setup)
+- [API Reference](#api-reference)
+- [Metadata Score](#metadata-score)
+- [Security](#security)
+- [Project Structure](#project-structure)
+
+---
+
+## Architecture
+
+```
+Client
+  │
+  ▼
+Express (server.js)
+  ├── helmet / cors / rate-limit
+  ├── POST /api/upload  ─► Multer (memoryStorage) ─► Supabase Storage
+  │                                                      │
+  │                                                   fileUrl
+  │                                                      │
+  │                                              Prisma (assets table)
+  │
+  ├── GET  /api/portfolio/:id  ─► Prisma (portfolio + assets)
+  └── GET  /health             ─► DB ping
+```
+
+---
+
+## Prerequisites
+
+| Tool | Version |
+|------|---------|
+| Node.js | ≥ 18 |
+| npm | ≥ 9 |
+| PostgreSQL | ≥ 14 (or Supabase DB) |
+| Supabase project | any tier |
+
+---
+
+## Quick Start
+
+```bash
+# 1. Clone / copy the project
+cd photo-stock-aggregator
+
+# 2. Install dependencies
+npm install
+
+# 3. Configure environment
+cp .env.example .env
+# Edit .env with your DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY
+
+# 4. Generate Prisma client & push schema
+npm run db:generate
+npm run db:push       # or: npm run db:migrate (creates migration files)
+
+# 5. Start dev server (with hot reload)
+npm run dev
+```
+
+Server starts at `http://localhost:3000`.
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `SUPABASE_URL` | ✅ | Your Supabase project URL |
+| `SUPABASE_ANON_KEY` | ✅ | Supabase anon/public API key |
+| `PORT` | ✗ | HTTP port (default: `3000`) |
+| `NODE_ENV` | ✗ | `development` \| `production` |
+| `CORS_ORIGIN` | ✗ | Allowed CORS origin (default: `*`) |
+
+---
+
+## Database Setup
+
+### Option A — Supabase (recommended with Supabase Storage)
+
+1. Create a new Supabase project at https://supabase.com
+2. Copy the **connection string** from *Project Settings → Database → Connection string (URI)*
+3. Paste it into `DATABASE_URL` in `.env`
+
+### Option B — Local PostgreSQL
+
+```bash
+psql -U postgres -c "CREATE DATABASE photo_stock;"
+# Then set DATABASE_URL=postgresql://postgres:password@localhost:5432/photo_stock
+```
+
+### Apply the schema
+
+```bash
+# Push schema without migration history (great for dev/staging)
+npm run db:push
+
+# OR create versioned migrations (recommended for production)
+npm run db:migrate
+```
+
+---
+
+## Supabase Storage Setup
+
+1. In the Supabase dashboard go to **Storage**.
+2. Create a bucket named exactly **`images`**.
+3. Set the bucket to **Public** (so `getPublicUrl` works without signed URLs).
+4. Optionally add a file-size policy (≤ 10 MB) for extra safety.
+
+---
+
+## API Reference
+
+### `GET /health`
+
+Basic liveness + DB connectivity check. No authentication required.
+
+**Response 200**
+```json
+{
+  "status": "ok",
+  "db": "connected",
+  "uptime": 42.3
+}
+```
+
+---
+
+### `POST /api/upload`
+
+Upload an image and create an asset record.
+
+**Content-Type:** `multipart/form-data`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `image` | File | ✅ | JPEG / PNG / WebP, max 10 MB |
+| `portfolioId` | string | ✅ | Must reference an existing portfolio |
+| `contentOrigin` | string | ✅ | `"ai"` or `"non-ai"` |
+| `title` | string | ✗ | Improves metadata score |
+| `description` | string | ✗ | Improves metadata score |
+| `keywords` | string | ✗ | Comma-separated, e.g. `"nature,forest,sunrise"` |
+
+**Response 201**
+```json
+{
+  "assetId": "clx8f...",
+  "fileUrl": "https://your-project.supabase.co/storage/v1/object/public/images/portfolios/clx.../uuid.jpg",
+  "metadataScore": 80
+}
+```
+
+**Error responses**
+
+| Code | Reason |
+|------|--------|
+| 400 | Missing required fields / invalid contentOrigin |
+| 404 | Portfolio not found |
+| 413 | File exceeds 10 MB |
+| 415 | Unsupported file type |
+| 429 | Rate limit exceeded (10 uploads/min/IP) |
+
+---
+
+### `GET /api/portfolio/:id`
+
+Retrieve a portfolio and all its assets.
+
+**Response 200**
+```json
+{
+  "id": "clx8f...",
+  "name": "Nature Collection",
+  "userId": "clx7e...",
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "assets": [
+    {
+      "id": "clx9g...",
+      "title": "Golden Hour Forest",
+      "description": "Sunlight filtering through pine trees",
+      "keywords": ["forest", "golden hour", "nature"],
+      "contentOrigin": "non-ai",
+      "fileUrl": "https://...",
+      "metadataScore": 90,
+      "createdAt": "2024-01-15T11:00:00.000Z",
+      "updatedAt": "2024-01-15T11:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Error responses**
+
+| Code | Reason |
+|------|--------|
+| 404 | Portfolio not found |
+
+---
+
+## Metadata Score
+
+Assets receive an automatic quality score (0–100) on upload:
+
+| Signal | Points |
+|--------|--------|
+| Title present | +20 |
+| Title ≥ 10 characters | +10 |
+| Description present | +20 |
+| Description ≥ 30 characters | +10 |
+| ≥ 1 keyword | +10 |
+| ≥ 5 keywords | +10 |
+| ≥ 10 keywords | +10 |
+| contentOrigin declared | +10 |
+| **Max total** | **100** |
+
+---
+
+## Security
+
+| Control | Detail |
+|---------|--------|
+| `helmet` | Sets secure HTTP headers (CSP, HSTS, etc.) |
+| `cors` | Configurable origin allowlist |
+| Global rate limit | 100 req / 15 min / IP on all `/api` routes |
+| Upload rate limit | 10 req / min / IP on `POST /api/upload` |
+| File type validation | Multer rejects non-image MIME types before buffering |
+| File size limit | 10 MB hard cap enforced by Multer |
+| Env-var guard | Server refuses to start if any required var is missing |
+
+---
+
+## Project Structure
+
+```
+photo-stock-aggregator/
+├── lib/
+│   ├── multer.js         # Multer config (memory storage + file filter)
+│   ├── prisma.js         # Singleton PrismaClient
+│   ├── supabase.js       # Supabase Storage client + upload helper
+│   └── metadataScore.js  # Scoring algorithm
+├── prisma/
+│   └── schema.prisma     # DB schema (users, portfolios, assets)
+├── routes/
+│   ├── upload.js         # POST /api/upload
+│   └── portfolio.js      # GET  /api/portfolio/:id
+├── .env.example
+├── .gitignore
+├── package.json
+├── README.md
+└── server.js             # Express app entry point
+```
+
+---
+
+## npm Scripts
+
+| Script | Action |
+|--------|--------|
+| `npm run dev` | Start with nodemon (hot reload) |
+| `npm start` | Start without hot reload |
+| `npm run db:generate` | Regenerate Prisma Client from schema |
+| `npm run db:push` | Push schema to DB (no migration history) |
+| `npm run db:migrate` | Create + apply a versioned migration |
+| `npm run db:studio` | Open Prisma Studio GUI |
