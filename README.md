@@ -1,0 +1,1 @@
+# Photo-stock-aggregator-backend
