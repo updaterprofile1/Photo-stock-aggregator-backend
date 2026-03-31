@@ -22,6 +22,7 @@ if (missing.length) {
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const app = express();
+app.set('trust proxy', 1);
 
 // ─── Security middleware ──────────────────────────────────────────────────────
 app.use(helmet());
