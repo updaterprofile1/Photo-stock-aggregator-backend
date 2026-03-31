@@ -1,18 +1,15 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-    provider  = "postgresql"
-      url       = env("DATABASE_URL")
-        directUrl = env("DIRECT_URL")
-
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id         String      @id @default(cuid())
+  id         String      @id @default(uuid()) @db.Uuid
   email      String      @unique
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
@@ -23,8 +20,8 @@ model User {
 }
 
 model Portfolio {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
   name      String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -43,8 +40,8 @@ enum ContentOrigin {
 }
 
 model Asset {
-  id            String        @id @default(cuid())
-  portfolioId   String        @map("portfolio_id")
+  id            String        @id @default(uuid()) @db.Uuid
+  portfolioId   String        @map("portfolio_id") @db.Uuid
   title         String
   description   String?
   keywords      String[]      @default([])
