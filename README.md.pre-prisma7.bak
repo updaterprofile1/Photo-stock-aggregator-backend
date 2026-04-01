@@ -43,7 +43,7 @@ Express (server.js)
 
 | Tool | Version |
 |------|---------|
-| Node.js | ≥ 20.19.0 |
+| Node.js | ≥ 18 |
 | npm | ≥ 9 |
 | PostgreSQL | ≥ 14 (or Supabase DB) |
 | Supabase project | any tier |
