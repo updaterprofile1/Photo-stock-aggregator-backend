@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
+const { getPublicUrl } = require('../lib/storage');
 
 const router = express.Router();
 
@@ -34,6 +35,7 @@ router.get('/:id', async (req, res, next) => {
             keywords: true,
             contentOrigin: true,
             fileUrl: true,
+            storageKey: true,
             metadataScore: true,
             createdAt: true,
             updatedAt: true,
@@ -49,10 +51,22 @@ router.get('/:id', async (req, res, next) => {
     // Normalise the contentOrigin enum back to the wire format ("non-ai" vs "ai")
     const normalised = {
       ...portfolio,
-      assets: portfolio.assets.map((a) => ({
-        ...a,
-        contentOrigin: a.contentOrigin === 'non_ai' ? 'non-ai' : a.contentOrigin,
-      })),
+      assets: portfolio.assets.map((a) => {
+        const contentOrigin = a.contentOrigin === 'non_ai' ? 'non-ai' : a.contentOrigin;
+        const fileUrl = a.storageKey ? getPublicUrl(a.storageKey) : a.fileUrl;
+
+        return {
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          keywords: a.keywords,
+          contentOrigin,
+          fileUrl,
+          metadataScore: a.metadataScore,
+          createdAt: a.createdAt,
+          updatedAt: a.updatedAt,
+        };
+      }),
     };
 
     return res.json(normalised);

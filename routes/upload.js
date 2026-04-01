@@ -2,15 +2,9 @@
 
 const express = require('express');
 const path = require('path');
-const { v4: uuidv4 } = require('crypto').webcrypto
-  ? (() => {
-      // Node 18+ has crypto.randomUUID natively — no extra dep needed
-      return { v4: () => require('crypto').randomUUID() };
-    })()
-  : require('crypto');
 
 const { upload } = require('../lib/multer');
-const { uploadToStorage } = require('../lib/supabase');
+const { uploadOriginal } = require('../lib/storage');
 const { computeMetadataScore } = require('../lib/metadataScore');
 const { getPrisma } = require('../lib/prisma');
 
@@ -58,7 +52,11 @@ router.post('/', upload.single('image'), async (req, res, next) => {
     const storageKey = `portfolios/${portfolioId}/${require('crypto').randomUUID()}${ext}`;
 
     // ── 4. Upload to Supabase Storage ─────────────────────────────────────
-    const fileUrl = await uploadToStorage(req.file.buffer, storageKey, req.file.mimetype);
+    const { publicUrl, storageKey: savedStorageKey } = await uploadOriginal(
+      req.file.buffer,
+      storageKey,
+      req.file.mimetype
+    );
 
     // ── 5. Parse keywords ─────────────────────────────────────────────────
     const keywordsArray = keywords
@@ -82,7 +80,8 @@ router.post('/', upload.single('image'), async (req, res, next) => {
         description: description || null,
         keywords: keywordsArray,
         contentOrigin: prismaContentOrigin,
-        fileUrl,
+        fileUrl: publicUrl,
+        storageKey: savedStorageKey,
         metadataScore,
       },
     });

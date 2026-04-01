@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -47,6 +46,7 @@ model Asset {
   keywords      String[]      @default([])
   contentOrigin ContentOrigin @map("content_origin")
   fileUrl       String        @map("file_url")
+  storageKey    String?       @map("storage_key")
   metadataScore Float         @default(0) @map("metadata_score")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")

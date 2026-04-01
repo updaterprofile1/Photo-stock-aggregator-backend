@@ -60,8 +60,11 @@ cd photo-stock-aggregator
 npm install
 
 # 3. Configure environment
+# For local development, copy .env.example and edit it:
 cp .env.example .env
-# Edit .env with your DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY
+
+# For Railway deployment, set DATABASE_URL, SUPABASE_URL,
+# and SUPABASE_SERVICE_ROLE_KEY in the Railway environment settings.
 
 # 4. Generate Prisma client & push schema
 npm run db:generate
@@ -81,10 +84,12 @@ Server starts at `http://localhost:3000`.
 |----------|----------|-------------|
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
 | `SUPABASE_URL` | ✅ | Your Supabase project URL |
-| `SUPABASE_ANON_KEY` | ✅ | Supabase anon/public API key |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Supabase service role key |
 | `PORT` | ✗ | HTTP port (default: `3000`) |
 | `NODE_ENV` | ✗ | `development` \| `production` |
 | `CORS_ORIGIN` | ✗ | Allowed CORS origin (default: `*`) |
+
+> Note: Railway and other cloud hosts can inject these values directly into the runtime environment. A local `.env` file is only needed for development and should not be committed.
 
 ---
 

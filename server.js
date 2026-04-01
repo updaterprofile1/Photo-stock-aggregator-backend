@@ -13,7 +13,7 @@ const portfolioRouter = require('./routes/portfolio');
 const { getPrisma } = require('./lib/prisma');
 
 // ─── Validate required environment variables ──────────────────────────────────
-const REQUIRED_ENV = ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+const REQUIRED_ENV = ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (missing.length) {
   console.error(`[startup] Missing required environment variables: ${missing.join(', ')}`);
