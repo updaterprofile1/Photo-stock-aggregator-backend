@@ -38,6 +38,19 @@ enum ContentOrigin {
   @@map("content_origin")
 }
 
+enum AssetStatus {
+  draft
+  ready
+  submitted
+  accepted
+  rejected
+  distributed
+  original_deleted
+  thumbnail_only
+
+  @@map("asset_status")
+}
+
 enum RetentionState {
   active
   deleted
@@ -53,6 +66,7 @@ model Asset {
   description         String?
   keywords            String[]       @default([])
   contentOrigin       ContentOrigin  @map("content_origin")
+  status              AssetStatus    @default(draft)
   fileUrl             String         @map("file_url")
   storageKey          String?        @map("storage_key")
   thumbnailUrl        String?        @map("thumbnail_url")

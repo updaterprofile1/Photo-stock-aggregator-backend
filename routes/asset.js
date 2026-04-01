@@ -18,6 +18,7 @@ function normalizeAsset(asset) {
     description: asset.description,
     keywords: asset.keywords,
     contentOrigin,
+    status: asset.status,
     fileUrl,
     thumbnailUrl,
     retentionState: asset.retentionState,
@@ -26,6 +27,13 @@ function normalizeAsset(asset) {
     createdAt: asset.createdAt,
     updatedAt: asset.updatedAt,
   };
+}
+
+function isMetadataReady({ title, description, keywords }) {
+  const hasTitle = typeof title === 'string' && title.trim().length > 0;
+  const hasDescription = typeof description === 'string' && description.trim().length > 0;
+  const keywordCount = Array.isArray(keywords) ? keywords.filter(Boolean).length : 0;
+  return hasTitle && hasDescription && keywordCount >= 3;
 }
 
 function parseKeywords(rawKeywords) {
@@ -60,7 +68,7 @@ router.get('/:id', async (req, res, next) => {
 router.patch('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, description, keywords, contentOrigin, retentionState } = req.body;
+    const { title, description, keywords, contentOrigin, retentionState, status } = req.body;
     const prisma = getPrisma();
 
     const asset = await prisma.asset.findUnique({ where: { id } });
@@ -70,6 +78,10 @@ router.patch('/:id', async (req, res, next) => {
 
     const errors = [];
     const update = {};
+
+    const mergedTitle = title !== undefined ? String(title).trim() : asset.title;
+    const mergedDescription = description !== undefined ? (description ? String(description) : null) : asset.description;
+    const mergedKeywords = keywords !== undefined ? parseKeywords(keywords) : asset.keywords;
 
     if (contentOrigin !== undefined) {
       if (!['ai', 'non-ai'].includes(contentOrigin)) {
@@ -93,6 +105,27 @@ router.patch('/:id', async (req, res, next) => {
       }
     }
 
+    if (status !== undefined) {
+      if (![
+        'draft',
+        'ready',
+        'submitted',
+        'accepted',
+        'rejected',
+        'distributed',
+        'original_deleted',
+        'thumbnail_only',
+      ].includes(status)) {
+        errors.push(
+          "status must be one of 'draft', 'ready', 'submitted', 'accepted', 'rejected', 'distributed', 'original_deleted', or 'thumbnail_only'."
+        );
+      } else if (status === 'ready' && !isMetadataReady({ title: mergedTitle, description: mergedDescription, keywords: mergedKeywords })) {
+        errors.push('Asset cannot be marked ready until title, description, and at least 3 keywords are provided.');
+      } else {
+        update.status = status;
+      }
+    }
+
     if (title !== undefined) {
       update.title = String(title);
     }
@@ -108,6 +141,11 @@ router.patch('/:id', async (req, res, next) => {
       } else {
         update.keywords = parsedKeywords;
       }
+    }
+
+    const readyMetadata = isMetadataReady({ title: mergedTitle, description: mergedDescription, keywords: mergedKeywords });
+    if (status === undefined && asset.status === 'draft' && readyMetadata) {
+      update.status = 'ready';
     }
 
     if (errors.length) {

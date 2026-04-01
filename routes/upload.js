@@ -80,6 +80,7 @@ router.post('/', upload.single('image'), async (req, res, next) => {
         description: description || null,
         keywords: keywordsArray,
         contentOrigin: prismaContentOrigin,
+        status: 'draft',
         fileUrl: publicUrl,
         storageKey: savedStorageKey,
         metadataScore,
