@@ -33,7 +33,10 @@ Express (server.js)
   │                                                      │
   │                                              Prisma (assets table)
   │
-  ├── GET  /api/portfolio/:id  ─► Prisma (portfolio + assets)
+  ├── GET  /api/portfolio/:id  ─► Prisma (assets by portfolioId)
+  ├── GET/PATCH/POST /api/asset/:id[/retention]
+  ├── POST /api/submit
+  ├── PUT  /api/assets/:assetId
   └── GET  /health             ─► DB ping
 ```
 
@@ -60,8 +63,10 @@ cd photo-stock-aggregator
 npm install
 
 # 3. Configure environment
-# For local development, copy .env.example and edit it:
-cp .env.example .env
+# Create a local .env file with required variables:
+# DATABASE_URL=...
+# SUPABASE_URL=...
+# SUPABASE_SERVICE_ROLE_KEY=...
 
 # For Railway deployment, set DATABASE_URL, SUPABASE_URL,
 # and SUPABASE_SERVICE_ROLE_KEY in the Railway environment settings.
@@ -177,37 +182,36 @@ Upload an image and create an asset record.
 | 400 | Missing required fields / invalid contentOrigin |
 | 404 | Portfolio not found |
 | 413 | File exceeds 10 MB |
-| 415 | Unsupported file type |
 | 429 | Rate limit exceeded (10 uploads/min/IP) |
 
 ---
 
 ### `GET /api/portfolio/:id`
 
-Retrieve a portfolio and all its assets.
+Retrieve assets for a portfolio ID.
+
+Current implementation queries `Asset` records by `portfolioId`.
 
 **Response 200**
 ```json
-{
-  "id": "clx8f...",
-  "name": "Nature Collection",
-  "userId": "clx7e...",
-  "createdAt": "2024-01-15T10:00:00.000Z",
-  "updatedAt": "2024-01-15T10:00:00.000Z",
-  "assets": [
-    {
-      "id": "clx9g...",
-      "title": "Golden Hour Forest",
-      "description": "Sunlight filtering through pine trees",
-      "keywords": ["forest", "golden hour", "nature"],
-      "contentOrigin": "non-ai",
-      "fileUrl": "https://...",
-      "metadataScore": 90,
-      "createdAt": "2024-01-15T11:00:00.000Z",
-      "updatedAt": "2024-01-15T11:00:00.000Z"
-    }
-  ]
-}
+[
+  {
+    "id": "clx9g...",
+    "portfolioId": "clx8f...",
+    "title": "Golden Hour Forest",
+    "description": "Sunlight filtering through pine trees",
+    "keywords": ["forest", "golden hour", "nature"],
+    "contentOrigin": "non-ai",
+    "status": "draft",
+    "fileUrl": "https://...",
+    "thumbnailUrl": "https://...",
+    "retentionState": "active",
+    "originalDeletedAt": null,
+    "metadataScore": 90,
+    "createdAt": "2024-01-15T11:00:00.000Z",
+    "updatedAt": "2024-01-15T11:00:00.000Z"
+  }
+]
 ```
 
 **Error responses**
@@ -254,6 +258,7 @@ Update asset metadata or retention state.
 | `keywords` | string or string[] | comma-separated string or array of keywords |
 | `contentOrigin` | string | optional, `ai` or `non-ai` |
 | `retentionState` | string | optional, `active`, `deleted`, or `archived` |
+| `status` | string | optional, `draft`, `ready`, `submitted`, `accepted`, `rejected`, `distributed`, `original_deleted`, `thumbnail_only` |
 
 **Response 200**
 ```json
@@ -279,6 +284,7 @@ Update asset metadata or retention state.
 | Code | Reason |
 |------|--------|
 | 400 | Validation failed |
+| 400 | No valid fields provided for update |
 | 404 | Asset not found |
 
 ---
@@ -356,7 +362,43 @@ Submit one or more assets to a provider-neutral submission layer.
 | Code | Reason |
 |------|--------|
 | 400 | Invalid request body |
+| 400 | One or more assets are not in `ready` status |
 | 404 | One or more asset IDs not found |
+
+---
+
+### `PUT /api/assets/:assetId`
+
+Alternate update endpoint mounted directly in `server.js`.
+
+**Request body** (JSON)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `portfolioId` | string | required |
+| `title` | string | optional |
+| `description` | string | optional |
+| `keywords` | string or string[] | comma-separated string or array of keywords |
+| `contentOrigin` | string | optional, `ai`, `non-ai`, or `photo` (`photo` maps to `non_ai`) |
+| `lifecycleState` | string | optional, mapped to `Asset.status` |
+
+**Response 200**
+```json
+{
+  "assetId": "clx9g...",
+  "fileUrl": "https://...",
+  "metadataScore": 90,
+  "lifecycleState": "ready"
+}
+```
+
+**Error responses**
+
+| Code | Reason |
+|------|--------|
+| 400 | Validation failed |
+| 400 | No valid updatable fields provided |
+| 404 | Asset not found for the provided portfolio |
 
 ---
 
@@ -383,10 +425,10 @@ Assets receive an automatic quality score (0–100) on upload:
 | Control | Detail |
 |---------|--------|
 | `helmet` | Sets secure HTTP headers (CSP, HSTS, etc.) |
-| `cors` | Configurable origin allowlist |
+| `cors` | Configurable origin allowlist; allowed methods currently `GET`, `POST`, `PUT` |
 | Global rate limit | 100 req / 15 min / IP on all `/api` routes |
 | Upload rate limit | 10 req / min / IP on `POST /api/upload` |
-| File type validation | Multer rejects non-image MIME types before buffering |
+| File type validation | Current `lib/multer.js` accepts any MIME type; only size is enforced |
 | File size limit | 10 MB hard cap enforced by Multer |
 | Env-var guard | Server refuses to start if any required var is missing |
 
@@ -397,19 +439,25 @@ Assets receive an automatic quality score (0–100) on upload:
 ```
 photo-stock-aggregator/
 ├── lib/
-│   ├── multer.js         # Multer config (memory storage + file filter)
+│   ├── multer.js         # Multer config (memory storage + size limit)
 │   ├── prisma.js         # Singleton PrismaClient
+│   ├── storage.js        # Storage upload/delete/public URL helpers
+│   ├── submission.js     # Provider-neutral submission service
 │   ├── supabase.js       # Supabase Storage client + upload helper
 │   └── metadataScore.js  # Scoring algorithm
+├── prisma.config.ts
 ├── prisma/
 │   └── schema.prisma     # DB schema (users, portfolios, assets)
 ├── routes/
 │   ├── upload.js         # POST /api/upload
-│   └── portfolio.js      # GET  /api/portfolio/:id
-├── .env.example
+│   ├── portfolio.js      # GET  /api/portfolio/:id
+│   ├── asset.js          # GET/PATCH/POST retention under /api/asset
+│   └── submit.js         # POST /api/submit
 ├── .gitignore
 ├── package.json
 ├── README.md
+├── test-storage.js
+├── put-asset.integration.test.js
 └── server.js             # Express app entry point
 ```
 
