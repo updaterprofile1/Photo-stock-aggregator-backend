@@ -23,7 +23,7 @@ if (missing.length) {
   process.exit(1);
 }
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const port = process.env.PORT || 3000;
 const app = express();
 app.set('trust proxy', 1);
 
@@ -249,10 +249,7 @@ app.use((err, _req, res, _next) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`[server] photo-stock-aggregator running on http://localhost:${PORT}`);
-    console.log(`[server] Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
+  app.listen(port, () => console.log(`Running on port ${port}`));
 }
 
 module.exports = app; // for testing
