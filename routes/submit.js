@@ -21,7 +21,7 @@ router.post('/', async (req, res, next) => {
     if (err.code === 'ASSET_NOT_READY') {
       return res.status(400).json({ error: err.message });
     }
-    return res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
 const { getPublicUrl } = require('../lib/storage');
+const { computeMetadataScore } = require('../lib/metadataScore');
 
 const router = express.Router();
 
@@ -165,6 +166,14 @@ router.patch('/:id', async (req, res, next) => {
     if (Object.keys(update).length === 0) {
       return res.status(400).json({ error: 'No valid fields provided for update.' });
     }
+
+    const mergedContentOrigin = update.contentOrigin !== undefined ? update.contentOrigin : asset.contentOrigin;
+    update.metadataScore = computeMetadataScore({
+      title: mergedTitle || '',
+      description: mergedDescription || '',
+      keywords: Array.isArray(mergedKeywords) ? mergedKeywords : [],
+      contentOrigin: mergedContentOrigin,
+    });
 
     const updatedAsset = await prisma.asset.update({ where: { id }, data: update });
     return res.json(normalizeAsset(updatedAsset));

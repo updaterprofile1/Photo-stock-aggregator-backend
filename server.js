@@ -207,6 +207,15 @@ app.put('/api/assets/:assetId', async (req, res, next) => {
       contentOrigin: mergedContentOrigin,
     });
 
+    // Lifecycle promotion gate: score >= 50 required to advance status
+    const PROMOTION_STATES = new Set(['ready', 'submitted', 'accepted', 'distributed']);
+    if (lifecycleState !== undefined && PROMOTION_STATES.has(lifecycleState) && update.metadataScore < 50) {
+      return res.status(400).json({
+        error: 'Incomplete metadata',
+        currentScore: update.metadataScore,
+      });
+    }
+
     if (Object.keys(update).length === 1 && update.metadataScore !== undefined) {
       return res.status(400).json({ error: 'No valid updatable fields provided.' });
     }
