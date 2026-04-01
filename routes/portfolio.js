@@ -23,30 +23,10 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params;
     const prisma = getPrisma();
 
-    const portfolio = await prisma.portfolio.findUnique({
-      where: { id },
-      include: {
-        assets: {
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            keywords: true,
-            contentOrigin: true,
-            status: true,
-            fileUrl: true,
-            storageKey: true,
-            thumbnailUrl: true,
-            thumbnailStorageKey: true,
-            retentionState: true,
-            originalDeletedAt: true,
-            metadataScore: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-      },
+    const portfolioId = id;
+    const portfolio = await prisma.asset.findMany({
+      where: { portfolioId: portfolioId },
+      orderBy: { createdAt: 'desc' }
     });
 
     if (!portfolio) {
