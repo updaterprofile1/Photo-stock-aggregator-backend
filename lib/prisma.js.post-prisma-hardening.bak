@@ -29,21 +29,4 @@ function getPrisma() {
   return globalForPrisma.__prisma;
 }
 
-function getPgPool() {
-  return globalForPrisma.__pgPool;
-}
-
-async function closePrisma() {
-  const prisma = globalForPrisma.__prisma;
-  const pool = globalForPrisma.__pgPool;
-
-  if (prisma) {
-    await prisma.$disconnect();
-  }
-
-  if (pool) {
-    await pool.end();
-  }
-}
-
-module.exports = { getPrisma, getPgPool, closePrisma };
+module.exports = { getPrisma };

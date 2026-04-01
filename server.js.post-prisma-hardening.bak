@@ -12,7 +12,7 @@ const uploadRouter = require('./routes/upload');
 const portfolioRouter = require('./routes/portfolio');
 const submitRouter = require('./routes/submit');
 const assetRouter = require('./routes/asset');
-const { getPrisma, closePrisma } = require('./lib/prisma');
+const { getPrisma } = require('./lib/prisma');
 const { computeMetadataScore } = require('./lib/metadataScore');
 
 // ─── Validate required environment variables ──────────────────────────────────
@@ -25,7 +25,6 @@ if (missing.length) {
 
 const port = process.env.PORT || 3000;
 const app = express();
-let server;
 app.set('trust proxy', 1);
 
 // ─── Security middleware ──────────────────────────────────────────────────────
@@ -65,10 +64,6 @@ const uploadLimiter = rateLimit({
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // Health check — no rate limit, no auth
-app.get('/live', (_req, res) => {
-  return res.json({ status: 'ok', uptime: process.uptime() });
-});
-
 app.get('/health', async (_req, res) => {
   try {
     // Quick DB ping
@@ -76,8 +71,7 @@ app.get('/health', async (_req, res) => {
     await prisma.$queryRaw`SELECT 1`;
     return res.json({ status: 'ok', db: 'connected', uptime: process.uptime() });
   } catch (err) {
-    const message = process.env.NODE_ENV === 'production' ? 'Database unreachable.' : err.message;
-    return res.status(503).json({ status: 'error', db: 'unreachable', message });
+    return res.status(503).json({ status: 'error', db: 'unreachable', message: err.message });
   }
 });
 
@@ -249,68 +243,14 @@ app.use((err, _req, res, _next) => {
     ? 'Internal server error.'
     : err.message;
 
-  const errorLog = {
-    status,
-    code: err.code,
-    name: err.name,
-    message: err.message,
-  };
-  if (process.env.NODE_ENV !== 'production' && err.stack) {
-    errorLog.stack = err.stack;
-  }
-
-  console.error('[error]', errorLog);
+  console.error('[error]', err);
   return res.status(status).json({ error: message });
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
-  server = app.listen(port, '0.0.0.0', () => {
+  app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${port}`);
-  });
-
-  let isShuttingDown = false;
-  const shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS || 10000);
-
-  const shutdown = async (signal) => {
-    if (isShuttingDown) {
-      return;
-    }
-    isShuttingDown = true;
-    console.log(`[shutdown] Received ${signal}, shutting down...`);
-
-    const forceExitTimer = setTimeout(() => {
-      console.error('[shutdown] Timed out waiting for graceful shutdown. Exiting forcefully.');
-      process.exit(1);
-    }, shutdownTimeoutMs);
-    if (typeof forceExitTimer.unref === 'function') {
-      forceExitTimer.unref();
-    }
-
-    try {
-      await new Promise((resolve, reject) => {
-        if (!server) {
-          return resolve();
-        }
-        return server.close((err) => (err ? reject(err) : resolve()));
-      });
-
-      await closePrisma();
-      clearTimeout(forceExitTimer);
-      console.log('[shutdown] Graceful shutdown complete.');
-      process.exit(0);
-    } catch (shutdownErr) {
-      clearTimeout(forceExitTimer);
-      console.error('[shutdown] Shutdown failed:', shutdownErr.message);
-      process.exit(1);
-    }
-  };
-
-  process.on('SIGTERM', () => {
-    void shutdown('SIGTERM');
-  });
-  process.on('SIGINT', () => {
-    void shutdown('SIGINT');
   });
 }
 
