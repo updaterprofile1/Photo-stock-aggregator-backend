@@ -218,6 +218,148 @@ Retrieve a portfolio and all its assets.
 
 ---
 
+### `GET /api/asset/:id`
+
+Retrieve a single asset record by ID.
+
+**Response 200**
+```json
+{
+  "id": "clx9g...",
+  "portfolioId": "clx8f...",
+  "title": "Golden Hour Forest",
+  "description": "Sunlight filtering through pine trees",
+  "keywords": ["forest", "golden hour", "nature"],
+  "contentOrigin": "non-ai",
+  "fileUrl": "https://...",
+  "thumbnailUrl": "https://...",
+  "retentionState": "active",
+  "originalDeletedAt": null,
+  "metadataScore": 90,
+  "createdAt": "2024-01-15T11:00:00.000Z",
+  "updatedAt": "2024-01-15T11:00:00.000Z"
+}
+```
+
+### `PATCH /api/asset/:id`
+
+Update asset metadata or retention state.
+
+**Request body** (JSON)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `title` | string | optional |
+| `description` | string | optional |
+| `keywords` | string or string[] | comma-separated string or array of keywords |
+| `contentOrigin` | string | optional, `ai` or `non-ai` |
+| `retentionState` | string | optional, `active`, `deleted`, or `archived` |
+
+**Response 200**
+```json
+{
+  "id": "clx9g...",
+  "portfolioId": "clx8f...",
+  "title": "Golden Hour Forest",
+  "description": "Sunlight filtering through pine trees",
+  "keywords": ["forest", "golden hour", "nature"],
+  "contentOrigin": "non-ai",
+  "fileUrl": "https://...",
+  "thumbnailUrl": "https://...",
+  "retentionState": "deleted",
+  "originalDeletedAt": "2026-04-01T12:00:00.000Z",
+  "metadataScore": 90,
+  "createdAt": "2024-01-15T11:00:00.000Z",
+  "updatedAt": "2026-04-01T12:00:00.000Z"
+}
+```
+
+**Error responses**
+
+| Code | Reason |
+|------|--------|
+| 400 | Validation failed |
+| 404 | Asset not found |
+
+---
+
+### `POST /api/asset/:id/retention`
+
+Mark an asset's retention state with a dedicated API call.
+
+**Request body**
+```json
+{
+  "state": "deleted"
+}
+```
+
+Valid states:
+- `active`
+- `deleted`
+- `archived`
+
+**Response 200**
+```json
+{
+  "id": "clx9g...",
+  "portfolioId": "clx8f...",
+  "title": "Golden Hour Forest",
+  "description": "Sunlight filtering through pine trees",
+  "keywords": ["forest", "golden hour", "nature"],
+  "contentOrigin": "non-ai",
+  "fileUrl": "https://...",
+  "thumbnailUrl": "https://...",
+  "retentionState": "deleted",
+  "originalDeletedAt": "2026-04-01T12:00:00.000Z",
+  "metadataScore": 90,
+  "createdAt": "2024-01-15T11:00:00.000Z",
+  "updatedAt": "2026-04-01T12:00:00.000Z"
+}
+```
+
+**Error responses**
+
+| Code | Reason |
+|------|--------|
+| 400 | Validation failed |
+| 404 | Asset not found |
+
+---
+
+### `POST /api/submit`
+
+Submit one or more assets to a provider-neutral submission layer.
+
+**Request body**
+```json
+{
+  "assetIds": ["clx9g...", "clx8f..."],
+  "siteSlug": "example-site",
+  "userId": "clx7e..."
+}
+```
+
+**Response 202**
+```json
+{
+  "jobId": "mock-...",
+  "status": "submitted",
+  "siteSlug": "example-site",
+  "submittedCount": 2,
+  "submittedAssetIds": ["clx9g...", "clx8f..."]
+}
+```
+
+**Error responses**
+
+| Code | Reason |
+|------|--------|
+| 400 | Invalid request body |
+| 404 | One or more asset IDs not found |
+
+---
+
 ## Metadata Score
 
 Assets receive an automatic quality score (0–100) on upload:

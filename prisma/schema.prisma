@@ -38,18 +38,30 @@ enum ContentOrigin {
   @@map("content_origin")
 }
 
+enum RetentionState {
+  active
+  deleted
+  archived
+
+  @@map("retention_state")
+}
+
 model Asset {
-  id            String        @id @default(uuid()) @db.Uuid
-  portfolioId   String        @map("portfolio_id") @db.Uuid
-  title         String
-  description   String?
-  keywords      String[]      @default([])
-  contentOrigin ContentOrigin @map("content_origin")
-  fileUrl       String        @map("file_url")
-  storageKey    String?       @map("storage_key")
-  metadataScore Float         @default(0) @map("metadata_score")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id                  String         @id @default(uuid()) @db.Uuid
+  portfolioId         String         @map("portfolio_id") @db.Uuid
+  title               String
+  description         String?
+  keywords            String[]       @default([])
+  contentOrigin       ContentOrigin  @map("content_origin")
+  fileUrl             String         @map("file_url")
+  storageKey          String?        @map("storage_key")
+  thumbnailUrl        String?        @map("thumbnail_url")
+  thumbnailStorageKey String?        @map("thumbnail_storage_key")
+  retentionState      RetentionState @default(active) @map("retention_state")
+  originalDeletedAt   DateTime?      @map("original_deleted_at")
+  metadataScore       Float          @default(0) @map("metadata_score")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
   portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
 

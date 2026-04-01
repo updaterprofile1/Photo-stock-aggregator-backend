@@ -10,6 +10,8 @@ const rateLimit = require('express-rate-limit');
 
 const uploadRouter = require('./routes/upload');
 const portfolioRouter = require('./routes/portfolio');
+const submitRouter = require('./routes/submit');
+const assetRouter = require('./routes/asset');
 const { getPrisma } = require('./lib/prisma');
 
 // ─── Validate required environment variables ──────────────────────────────────
@@ -74,6 +76,8 @@ app.get('/health', async (_req, res) => {
 
 app.use('/api/upload', uploadLimiter, uploadRouter);
 app.use('/api/portfolio', portfolioRouter);
+app.use('/api/submit', submitRouter);
+app.use('/api/asset', assetRouter);
 
 // 404 handler
 app.use((_req, res) => {

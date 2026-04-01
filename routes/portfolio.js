@@ -36,6 +36,10 @@ router.get('/:id', async (req, res, next) => {
             contentOrigin: true,
             fileUrl: true,
             storageKey: true,
+            thumbnailUrl: true,
+            thumbnailStorageKey: true,
+            retentionState: true,
+            originalDeletedAt: true,
             metadataScore: true,
             createdAt: true,
             updatedAt: true,
@@ -54,6 +58,9 @@ router.get('/:id', async (req, res, next) => {
       assets: portfolio.assets.map((a) => {
         const contentOrigin = a.contentOrigin === 'non_ai' ? 'non-ai' : a.contentOrigin;
         const fileUrl = a.storageKey ? getPublicUrl(a.storageKey) : a.fileUrl;
+        const thumbnailUrl = a.thumbnailStorageKey
+          ? getPublicUrl(a.thumbnailStorageKey)
+          : a.thumbnailUrl || fileUrl;
 
         return {
           id: a.id,
@@ -62,6 +69,9 @@ router.get('/:id', async (req, res, next) => {
           keywords: a.keywords,
           contentOrigin,
           fileUrl,
+          thumbnailUrl,
+          retentionState: a.retentionState,
+          originalDeletedAt: a.originalDeletedAt,
           metadataScore: a.metadataScore,
           createdAt: a.createdAt,
           updatedAt: a.updatedAt,
