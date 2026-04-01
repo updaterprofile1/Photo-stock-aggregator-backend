@@ -54,7 +54,12 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params;
     const prisma = getPrisma();
 
-    const asset = await prisma.asset.findUnique({ where: { id } });
+    const asset = await prisma.asset.findFirst({
+      where: {
+        id,
+        portfolio: { userId: req.userId },
+      },
+    });
     if (!asset) {
       return res.status(404).json({ error: `Asset '${id}' not found.` });
     }
@@ -71,7 +76,12 @@ router.patch('/:id', async (req, res, next) => {
     const { title, description, keywords, contentOrigin, retentionState, status } = req.body;
     const prisma = getPrisma();
 
-    const asset = await prisma.asset.findUnique({ where: { id } });
+    const asset = await prisma.asset.findFirst({
+      where: {
+        id,
+        portfolio: { userId: req.userId },
+      },
+    });
     if (!asset) {
       return res.status(404).json({ error: `Asset '${id}' not found.` });
     }
@@ -173,7 +183,12 @@ router.post('/:id/retention', async (req, res, next) => {
       return res.status(400).json({ error: "state must be 'active', 'deleted', or 'archived'." });
     }
 
-    const asset = await prisma.asset.findUnique({ where: { id } });
+    const asset = await prisma.asset.findFirst({
+      where: {
+        id,
+        portfolio: { userId: req.userId },
+      },
+    });
     if (!asset) {
       return res.status(404).json({ error: `Asset '${id}' not found.` });
     }

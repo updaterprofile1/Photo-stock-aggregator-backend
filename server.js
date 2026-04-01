@@ -14,6 +14,7 @@ const submitRouter = require('./routes/submit');
 const assetRouter = require('./routes/asset');
 const { getPrisma, closePrisma } = require('./lib/prisma');
 const { computeMetadataScore } = require('./lib/metadataScore');
+const { requireUserId } = require('./lib/requestUser');
 
 // ─── Validate required environment variables ──────────────────────────────────
 const REQUIRED_ENV = ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
@@ -52,6 +53,7 @@ const globalLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api', globalLimiter);
+app.use('/api', requireUserId);
 
 // Strict upload limiter – 10 requests per minute per IP
 const uploadLimiter = rateLimit({
@@ -115,6 +117,7 @@ app.put('/api/assets/:assetId', async (req, res, next) => {
       where: {
         id: assetId,
         portfolioId,
+        portfolio: { userId: req.userId },
       },
     });
 

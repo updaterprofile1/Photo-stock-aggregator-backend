@@ -5,13 +5,13 @@ const router = express.Router();
 
 router.post('/', async (req, res, next) => {
   try {
-    const { assetIds, siteSlug, userId } = req.body;
+    const { assetIds, siteSlug } = req.body;
 
     const parsedAssetIds = Array.isArray(assetIds)
       ? assetIds.map((value) => String(value).trim()).filter(Boolean)
       : [];
 
-    const result = await submitAssets({ assetIds: parsedAssetIds, siteSlug, userId });
+    const result = await submitAssets({ assetIds: parsedAssetIds, siteSlug, userId: req.userId });
 
     return res.status(202).json(result);
   } catch (err) {

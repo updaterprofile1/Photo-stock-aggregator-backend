@@ -98,6 +98,16 @@ Server starts at `http://localhost:3000`.
 | `CORS_ORIGIN` | ✗ | Allowed CORS origin (default: `*`) |
 | `SHUTDOWN_TIMEOUT_MS` | ✗ | Graceful shutdown timeout in milliseconds (default: `10000`) |
 
+### API User Context Header
+
+All `/api/*` routes require an `x-user-id` header. The server scopes portfolio and asset access to this value to enforce tenant isolation.
+
+Example:
+
+```bash
+curl -H "x-user-id: user-123" http://localhost:3000/api/portfolio/<portfolio-id>
+```
+
 > Note: Railway and other cloud hosts can inject these values directly into the runtime environment. A local `.env` file is only needed for development and should not be committed.
 
 ---
@@ -174,6 +184,8 @@ Readiness check (includes lightweight DB ping). Returns 200 only when app + DB a
 
 Upload an image and create an asset record.
 
+Requires header: `x-user-id`
+
 **Content-Type:** `multipart/form-data`
 
 | Field | Type | Required | Notes |
@@ -208,6 +220,8 @@ Upload an image and create an asset record.
 ### `GET /api/portfolio/:id`
 
 Retrieve assets for a portfolio ID.
+
+Requires header: `x-user-id`
 
 Current implementation queries `Asset` records by `portfolioId`.
 
@@ -245,6 +259,8 @@ Current implementation queries `Asset` records by `portfolioId`.
 
 Retrieve a single asset record by ID.
 
+Requires header: `x-user-id`
+
 **Response 200**
 ```json
 {
@@ -267,6 +283,8 @@ Retrieve a single asset record by ID.
 ### `PATCH /api/asset/:id`
 
 Update asset metadata or retention state.
+
+Requires header: `x-user-id`
 
 **Request body** (JSON)
 
@@ -312,6 +330,8 @@ Update asset metadata or retention state.
 
 Mark an asset's retention state with a dedicated API call.
 
+Requires header: `x-user-id`
+
 **Request body**
 ```json
 {
@@ -356,6 +376,8 @@ Valid states:
 
 Submit one or more assets to a provider-neutral submission layer.
 
+Requires header: `x-user-id`
+
 **Request body**
 ```json
 {
@@ -389,6 +411,8 @@ Submit one or more assets to a provider-neutral submission layer.
 ### `PUT /api/assets/:assetId`
 
 Alternate update endpoint mounted directly in `server.js`.
+
+Requires header: `x-user-id`
 
 **Request body** (JSON)
 

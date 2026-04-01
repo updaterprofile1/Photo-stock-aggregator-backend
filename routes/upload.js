@@ -42,7 +42,12 @@ router.post('/', upload.single('image'), async (req, res, next) => {
 
     // ── 2. Confirm portfolio exists ────────────────────────────────────────
     const prisma = getPrisma();
-    const portfolio = await prisma.portfolio.findUnique({ where: { id: portfolioId } });
+    const portfolio = await prisma.portfolio.findFirst({
+      where: {
+        id: portfolioId,
+        userId: req.userId,
+      },
+    });
     if (!portfolio) {
       return res.status(404).json({ error: `Portfolio '${portfolioId}' not found.` });
     }

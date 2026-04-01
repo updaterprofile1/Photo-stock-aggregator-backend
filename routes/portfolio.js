@@ -23,10 +23,16 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params;
     const prisma = getPrisma();
 
-    const portfolioId = id;
-    const portfolio = await prisma.asset.findMany({
-      where: { portfolioId: portfolioId },
-      orderBy: { createdAt: 'desc' }
+    const portfolio = await prisma.portfolio.findFirst({
+      where: {
+        id,
+        userId: req.userId,
+      },
+      include: {
+        assets: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
 
     if (!portfolio) {
@@ -35,7 +41,11 @@ router.get('/:id', async (req, res, next) => {
 
     // Normalise the contentOrigin enum back to the wire format ("non-ai" vs "ai")
     const normalised = {
-      ...portfolio,
+      id: portfolio.id,
+      userId: portfolio.userId,
+      name: portfolio.name,
+      createdAt: portfolio.createdAt,
+      updatedAt: portfolio.updatedAt,
       assets: portfolio.assets.map((a) => {
         const contentOrigin = a.contentOrigin === 'non_ai' ? 'non-ai' : a.contentOrigin;
         const fileUrl = a.storageKey ? getPublicUrl(a.storageKey) : a.fileUrl;

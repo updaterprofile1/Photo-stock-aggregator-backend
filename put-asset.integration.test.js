@@ -86,7 +86,7 @@ test.beforeEach(() => {
 test('PUT /api/assets/:assetId returns 400 when portfolioId is missing', async () => {
   const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-user-id': 'user-1' },
     body: JSON.stringify({ title: 'New title' }),
   });
 
@@ -100,7 +100,7 @@ test('PUT /api/assets/:assetId returns 404 when asset does not exist for portfol
 
   const res = await fetch(`${baseUrl}/api/assets/asset-404`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-user-id': 'user-1' },
     body: JSON.stringify({ portfolioId: 'portfolio-1', title: 'New title' }),
   });
 
@@ -108,7 +108,7 @@ test('PUT /api/assets/:assetId returns 404 when asset does not exist for portfol
   const body = await res.json();
   assert.match(body.error, /not found/i);
   assert.deepEqual(state.lastFindFirstArgs, {
-    where: { id: 'asset-404', portfolioId: 'portfolio-1' },
+    where: { id: 'asset-404', portfolioId: 'portfolio-1', portfolio: { userId: 'user-1' } },
   });
 });
 
@@ -124,7 +124,7 @@ test('PUT /api/assets/:assetId returns 400 for invalid lifecycleState', async ()
 
   const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-user-id': 'user-1' },
     body: JSON.stringify({
       portfolioId: 'portfolio-1',
       lifecycleState: 'invalid-state',
@@ -157,7 +157,7 @@ test('PUT /api/assets/:assetId updates allowed fields and returns normalized res
 
   const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-user-id': 'user-1' },
     body: JSON.stringify({
       portfolioId: 'portfolio-1',
       title: 'New title',
