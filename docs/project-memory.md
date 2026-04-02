@@ -33,6 +33,13 @@ Use this file as lightweight durable memory for this repository.
 - Risks / Follow-ups: Path naming inconsistency (`/api/asset` vs `/api/assets`) is documented in api-contract.md; resolving it is a future breaking change.
 
 - Date: 2026-04-02
+- Task: Integrate Send It-Stock business/stack model docs into informational docs
+- Files changed: docs/system-architecture.md, docs/deployment.md
+- Summary: Added original deletion safety conditions, target lifecycle progression (uploaded_temp → distributed_confirmed → thumbnail_retained → original_deleted), hybrid buffer model (7-30 day window), and legal/operational deletion risks to system-architecture.md. Added "Target Deployment Options" section to deployment.md with hosted/self-hosted/hybrid stack comparisons and storage cost table. Monetization/revenue tables and historical model content excluded as out of scope.
+- Tests: No tests run
+- Risks / Follow-ups: Deletion safety conditions are documented intent only; enforcement logic not yet implemented.
+
+- Date: 2026-04-02
 - Task: Create architecture/api/deployment docs and add documentation-sync rule
 - Files changed: docs/system-architecture.md; docs/api-contract.md; docs/deployment.md; README.md; .github/copilot-instructions.md; /home/codespace/.vscode-remote/data/User/prompts/global-engineering.instructions.md
 - Summary: Added project-facing documentation for architecture, API contract, and deployment; added a README documentation index; added system-wide and repo-wide rule to update docs when setup/API/schema/architecture/deployment behavior changes.

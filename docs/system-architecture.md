@@ -117,3 +117,34 @@ Beyond the current `Asset`, `Portfolio`, `SubmissionJob` tables:
 | 123RF | Yes, with rules | ftp_batch | Batch candidate |
 
 Site rules are intended to be stored as data, not hardcoded.
+
+### Original Deletion Safety Conditions
+
+Original deletion must only trigger after **all** of the following are confirmed:
+- Partner site has accepted the asset.
+- Thumbnail is generated and stored.
+- Royalty/payout linkage is recorded.
+- Retry window has elapsed.
+
+**Never delete on:** `queued`, `uploaded`, or any unconfirmed state.
+
+**Do not delete if the original may be needed for:**
+- Resubmission to a failed or new partner.
+- Active disputes or content reviews.
+- Takedown or replacement requests.
+- Metadata regeneration.
+- Legal evidence requirements.
+
+> Verify per partner site: some require re-uploads or proofs of ownership rather than relying on their stored copy as source of truth.
+
+### Target Lifecycle State Progression
+
+```
+uploaded_temp → distributed_confirmed → thumbnail_retained → original_deleted
+```
+
+### Hybrid Buffer Model (Target Option)
+
+A safer intermediate approach: retain the original for a 7–30 day buffer after confirmed distribution before deletion. This provides a rollback window for disputes, resubmissions, and failed confirmations.
+
+Delete original only after buffer window elapses **and** none of the following flags are set: failed, disputed, pending review, flagged for new partner.
