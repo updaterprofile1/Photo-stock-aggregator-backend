@@ -12,6 +12,7 @@ const uploadRouter = require('./routes/upload');
 const portfolioRouter = require('./routes/portfolio');
 const submitRouter = require('./routes/submit');
 const assetRouter = require('./routes/asset');
+const jobsRouter = require('./routes/jobs');
 const { getPrisma, closePrisma } = require('./lib/prisma');
 const { computeMetadataScore } = require('./lib/metadataScore');
 const { requireUserId } = require('./lib/requestUser');
@@ -99,6 +100,17 @@ const submitLimiter = rateLimit({
 });
 app.use('/api/submit', submitLimiter, submitRouter);
 app.use('/api/asset', assetRouter);
+
+// Jobs polling: 60 requests per minute per IP.
+// Override via JOBS_RATE_LIMIT_MAX / JOBS_RATE_LIMIT_WINDOW_MS env vars.
+const jobsLimiter = rateLimit({
+  windowMs: Number(process.env.JOBS_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
+  max: Number(process.env.JOBS_RATE_LIMIT_MAX) || 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Job polling rate limit exceeded (60/min). Please slow down.' },
+});
+app.use('/api/jobs', jobsLimiter, jobsRouter);
 
 /**
  * PUT /api/assets/:assetId

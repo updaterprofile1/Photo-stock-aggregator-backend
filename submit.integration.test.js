@@ -31,6 +31,8 @@ const state = {
   updateManyResult: { count: 0 },
   lastFindManyArgs: null,
   lastUpdateManyArgs: null,
+  lastJobCreate: null,
+  lastJobUpdate: null,
 };
 
 const prismaMock = {
@@ -43,6 +45,16 @@ const prismaMock = {
     updateMany: async (args) => {
       state.lastUpdateManyArgs = args;
       return state.updateManyResult;
+    },
+  },
+  submissionJob: {
+    create: async (args) => {
+      state.lastJobCreate = args;
+      return { ...args.data };
+    },
+    update: async (args) => {
+      state.lastJobUpdate = args;
+      return { id: args.where.id, ...args.data };
     },
   },
 };
@@ -98,6 +110,8 @@ test.beforeEach(() => {
   state.updateManyResult = { count: 0 };
   state.lastFindManyArgs = null;
   state.lastUpdateManyArgs = null;
+  state.lastJobCreate = null;
+  state.lastJobUpdate = null;
   // These are cleaned up inside each n8n test's finally block; belt-and-suspenders:
   delete process.env.N8N_WEBHOOK_URL;
   delete process.env.N8N_WEBHOOK_SECRET;
@@ -191,7 +205,7 @@ test('POST /api/submit – AI asset accepted by adobestock → 202', async () =>
   assert.equal(res.status, 202);
   const body = await res.json();
   assert.equal(body.status, 'submitted');
-  assert.ok(body.jobId.startsWith('mock-'));
+  assert.ok(body.jobId, 'jobId should be a non-empty string');
   assert.equal(body.provider, 'mock');
 });
 
@@ -209,8 +223,17 @@ test('POST /api/submit – happy path → 202 with jobId + lifecycle updated', a
   assert.equal(body.submittedCount, 1);
   assert.deepEqual(body.submittedAssetIds, ['asset-1']);
 
-  // Verify lifecycle written to DB
+  // Verify asset lifecycle written to DB
   assert.equal(state.lastUpdateManyArgs.data.status, 'submitted');
+
+  // Verify job record was created then updated
+  assert.ok(state.lastJobCreate, 'job record should be created');
+  assert.equal(state.lastJobCreate.data.status, 'queued');
+  assert.deepEqual(state.lastJobCreate.data.assetIds, ['asset-1']);
+  assert.equal(state.lastJobCreate.data.siteSlug, 'adobestock');
+  assert.ok(state.lastJobCreate.data.id, 'job id should be set before provider call');
+  assert.equal(state.lastJobUpdate.data.status, 'submitted');
+  assert.equal(body.jobId, state.lastJobCreate.data.id);
 });
 
 test('POST /api/submit – multiple assets, all ready → 202', async () => {
@@ -282,8 +305,9 @@ test('POST /api/submit – n8n provider HTTP error → 502, assets marked reject
     state.findManyResult = [makeAsset()];
     const res = await post('/api/submit', { siteSlug: 'adobestock', assetIds: ['asset-1'] });
     assert.equal(res.status, 502);
-    // DB should have been updated to 'rejected' by the error path
+    // Assets and job should both be marked rejected
     assert.equal(state.lastUpdateManyArgs?.data?.status, 'rejected');
+    assert.equal(state.lastJobUpdate?.data?.status, 'rejected');
   } finally {
     delete process.env.N8N_WEBHOOK_URL;
     await new Promise((resolve) => server.close(resolve));
