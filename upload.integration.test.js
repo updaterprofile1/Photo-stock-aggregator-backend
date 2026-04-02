@@ -31,7 +31,9 @@ const storagePath  = path.join(projectRoot, 'lib', 'storage.js');
 const state = {
   findFirstPortfolioResult: null,
   createAssetResult: null,
+  updateAssetResult: null,
   lastCreateArgs: null,
+  lastUpdateArgs: null,
 };
 
 // ─── Stubs (registered before server.js loads) ────────────────────────────────
@@ -44,6 +46,10 @@ const prismaMock = {
     create: async (args) => {
       state.lastCreateArgs = args;
       return state.createAssetResult;
+    },
+    update: async (args) => {
+      state.lastUpdateArgs = args;
+      return state.updateAssetResult;
     },
   },
 };
@@ -120,7 +126,9 @@ test.after(async () => {
 test.beforeEach(() => {
   state.findFirstPortfolioResult = null;
   state.createAssetResult = null;
+  state.updateAssetResult = null;
   state.lastCreateArgs = null;
+  state.lastUpdateArgs = null;
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -200,8 +208,11 @@ test('POST /api/upload → 201 on fully valid upload', async () => {
     id: 'asset-abc',
     fileUrl: 'https://example.supabase.co/storage/v1/object/public/images/originals/p-1/asset-abc/asset-abc.png',
     thumbnailUrl: 'https://example.supabase.co/storage/v1/object/public/images/thumbnails/p-1/asset-abc/thumb_asset-abc.png',
+    thumbnailStorageKey: 'thumbnails/p-1/asset-abc/thumb_asset-abc.png',
+    submissionHistory: [],
     metadataScore: 30,
   };
+  state.updateAssetResult = state.createAssetResult;
 
   const blob = new Blob([validPng], { type: 'image/png' });
   const res = await fetch(`${baseUrl}/api/upload`, {
@@ -217,4 +228,5 @@ test('POST /api/upload → 201 on fully valid upload', async () => {
   assert.ok(typeof body.metadataScore === 'number');
 
   assert.equal(state.lastCreateArgs?.data?.status, 'draft');
+  assert.deepEqual(state.lastCreateArgs?.data?.submissionHistory, []);
 });

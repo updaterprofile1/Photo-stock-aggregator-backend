@@ -31,12 +31,17 @@ const state = {
   updateManyResult: { count: 0 },
   lastFindManyArgs: null,
   lastUpdateManyArgs: null,
+  findFirstAssetResult: null,
+  updateAssetResult: null,
+  lastFindFirstAssetArgs: null,
+  lastUpdateAssetArgs: null,
   lastJobCreate: null,
   lastJobUpdate: null,
 };
 
 const prismaMock = {
   $queryRaw: async () => 1,
+  $transaction: async (fn) => fn(prismaMock),
   asset: {
     findMany: async (args) => {
       state.lastFindManyArgs = args;
@@ -45,6 +50,17 @@ const prismaMock = {
     updateMany: async (args) => {
       state.lastUpdateManyArgs = args;
       return state.updateManyResult;
+    },
+    findFirst: async (args) => {
+      state.lastFindFirstAssetArgs = args;
+      if (state.findFirstAssetResult) {
+        return state.findFirstAssetResult;
+      }
+      return state.findManyResult.find((asset) => asset.id === args?.where?.id) || null;
+    },
+    update: async (args) => {
+      state.lastUpdateAssetArgs = args;
+      return state.updateAssetResult;
     },
   },
   submissionJob: {
@@ -110,6 +126,10 @@ test.beforeEach(() => {
   state.updateManyResult = { count: 0 };
   state.lastFindManyArgs = null;
   state.lastUpdateManyArgs = null;
+  state.findFirstAssetResult = null;
+  state.updateAssetResult = null;
+  state.lastFindFirstAssetArgs = null;
+  state.lastUpdateAssetArgs = null;
   state.lastJobCreate = null;
   state.lastJobUpdate = null;
   // These are cleaned up inside each n8n test's finally block; belt-and-suspenders:
@@ -213,6 +233,8 @@ test('POST /api/submit – AI asset accepted by adobestock → 202', async () =>
 
 test('POST /api/submit – happy path → 202 with jobId + lifecycle updated', async () => {
   state.findManyResult = [makeAsset()];
+  state.findFirstAssetResult = { id: 'asset-1', submissionHistory: [] };
+  state.updateAssetResult = { id: 'asset-1', submissionHistory: [] };
   const res = await post('/api/submit', { siteSlug: 'adobestock', assetIds: ['asset-1'] });
   assert.equal(res.status, 202);
 
@@ -234,6 +256,9 @@ test('POST /api/submit – happy path → 202 with jobId + lifecycle updated', a
   assert.ok(state.lastJobCreate.data.id, 'job id should be set before provider call');
   assert.equal(state.lastJobUpdate.data.status, 'submitted');
   assert.equal(body.jobId, state.lastJobCreate.data.id);
+  assert.equal(state.lastUpdateAssetArgs?.where?.id, 'asset-1');
+  assert.equal(state.lastUpdateAssetArgs?.data?.submissionHistory?.[0]?.status, 'submitted');
+  assert.equal(state.lastUpdateAssetArgs?.data?.submissionHistory?.[0]?.siteId, 'adobestock');
 });
 
 test('POST /api/submit – multiple assets, all ready → 202', async () => {

@@ -9,6 +9,7 @@ const { validateImage } = require('../lib/imageValidator');
 const { storageManager, StorageError } = require('../lib/storage');
 const { resolveLifecycleTransition } = require('../lib/assetLifecycle');
 const { computeMetadataScore } = require('../lib/metadataScore');
+const { persistThumbnailMetadata } = require('../lib/thumbnailPersistence');
 const { getPrisma } = require('../lib/prisma');
 
 const router = express.Router();
@@ -102,15 +103,18 @@ router.post('/', upload.single('image'), validateImage, async (req, res, next) =
         thumbnailUrl: stored.thumbUrl,
         storageKey: stored.originalPath,
         thumbnailStorageKey: stored.thumbPath,
+        submissionHistory: [],
         metadataScore,
       },
     });
 
+    const persistedAsset = await persistThumbnailMetadata(asset);
+
     return res.status(201).json({
-      assetId: asset.id,
-      fileUrl: asset.fileUrl,
-      thumbnailUrl: asset.thumbnailUrl,
-      metadataScore: asset.metadataScore,
+      assetId: persistedAsset.id,
+      fileUrl: persistedAsset.fileUrl,
+      thumbnailUrl: persistedAsset.thumbnailUrl,
+      metadataScore: persistedAsset.metadataScore,
     });
   } catch (err) {
     if (err instanceof StorageError) {

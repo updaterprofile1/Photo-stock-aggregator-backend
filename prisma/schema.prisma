@@ -71,6 +71,7 @@ model Asset {
   storageKey          String?        @map("storage_key")
   thumbnailUrl        String?        @map("thumbnail_url")
   thumbnailStorageKey String?        @map("thumbnail_storage_key")
+  submissionHistory   Json           @default("[]") @map("submission_history")
   retentionState      RetentionState @default(active) @map("retention_state")
   originalDeletedAt   DateTime?      @map("original_deleted_at")
   metadataScore       Float          @default(0) @map("metadata_score")

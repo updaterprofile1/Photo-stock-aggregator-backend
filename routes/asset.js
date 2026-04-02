@@ -7,6 +7,7 @@ const {
   resolveLifecycleTransition,
 } = require('../lib/assetLifecycle');
 const { normalizeAsset } = require('../lib/normalizeAsset');
+const { recordSubmissionHistory } = require('../lib/thumbnailPersistence');
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.get('/:id', async (req, res, next) => {
 router.patch('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, description, keywords, contentOrigin, retentionState, status } = req.body;
+    const { title, description, keywords, contentOrigin, retentionState, status, siteId, externalAssetId } = req.body;
     const requestedStatus = status !== undefined ? String(status).trim() : undefined;
     const prisma = getPrisma();
 
@@ -153,6 +154,21 @@ router.patch('/:id', async (req, res, next) => {
     });
 
     const updatedAsset = await prisma.asset.update({ where: { id }, data: update });
+
+    if (
+      transition &&
+      transition.changed &&
+      ['accepted', 'rejected', 'distributed'].includes(transition.nextState) &&
+      siteId
+    ) {
+      await recordSubmissionHistory(
+        id,
+        siteId,
+        { status: transition.nextState, externalAssetId },
+        { userId: req.userId },
+      );
+    }
+
     return res.json(normalizeAsset(updatedAsset));
   } catch (err) {
     next(err);

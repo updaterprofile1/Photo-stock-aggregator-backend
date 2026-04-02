@@ -12,11 +12,15 @@ Use this file for all future chats in this repo.
 - Tests use Node built-in test runner ([package.json](package.json), [put-asset.integration.test.js](put-asset.integration.test.js)).
 
 ## Required behavior
+- Apply workflow rules from [.github/instructions/ai-workflow.instructions.md](.github/instructions/ai-workflow.instructions.md) for all tasks in this repository.
 - Do not guess codebase facts.
 - Verify claims from workspace files before answering.
 - If something is missing, reply exactly: Not found in workspace
 - Keep explanations beginner-friendly and define technical terms once when first used.
-- Ask clarifying questions when requirements are unclear.
+- Ask concise clarifying questions only when ambiguity materially affects correctness, safety, or scope.
+- Do not block on clarifying questions for straightforward tasks that are clearly actionable.
+- Maintain a short todo list for multi-step tasks, risky changes, or tasks with multiple explicit requirements.
+- Skip todo lists for straightforward one-step tasks to avoid unnecessary clutter.
 - Prefer minimal, reversible edits; avoid broad refactors unless asked.
 - Use a security-first mindset:
   - Never add secrets, tokens, passwords, or hardcoded credentials.

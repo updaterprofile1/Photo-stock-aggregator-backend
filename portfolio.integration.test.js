@@ -102,6 +102,14 @@ test('GET /api/portfolio/:id includes lifecycle and status fields for assets', a
         storageKey: 'originals/portfolio-1/asset-1/asset.jpg',
         thumbnailUrl: 'https://stored.example/thumb.jpg',
         thumbnailStorageKey: 'thumbnails/portfolio-1/asset-1/thumb_asset.jpg',
+        submissionHistory: [
+          {
+            siteId: 'adobestock',
+            submittedAt: '2026-04-01T12:00:00.000Z',
+            status: 'submitted',
+            externalAssetId: null,
+          },
+        ],
         retentionState: 'active',
         originalDeletedAt: null,
         metadataScore: 77.7,
@@ -119,4 +127,6 @@ test('GET /api/portfolio/:id includes lifecycle and status fields for assets', a
   const body = await res.json();
   assert.equal(body.assets[0].lifecycle, 'ready');
   assert.equal(body.assets[0].status, 'ready');
+  assert.equal(body.assets[0].submissionHistorySummary.count, 1);
+  assert.equal(body.assets[0].submissionHistorySummary.lastSiteId, 'adobestock');
 });
