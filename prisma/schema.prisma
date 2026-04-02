@@ -12,7 +12,8 @@ model User {
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
-  portfolios Portfolio[]
+  portfolios      Portfolio[]
+  submissionJobs  SubmissionJob[]
 
   @@map("users")
 }
@@ -79,4 +80,32 @@ model Asset {
   portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
 
   @@map("assets")
+}
+
+// ─── Submission Jobs ──────────────────────────────────────────────────────────
+
+enum JobStatus {
+  queued
+  uploading
+  submitted
+  accepted
+  rejected
+  distributed
+
+  @@map("job_status")
+}
+
+model SubmissionJob {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  siteSlug  String    @map("site_slug")
+  status    JobStatus @default(queued)
+  assetIds  String[]  @map("asset_ids")
+  provider  String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("submission_jobs")
 }
