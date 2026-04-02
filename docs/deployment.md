@@ -20,6 +20,9 @@ Additional commonly used variables:
 - `SUBMIT_RATE_LIMIT_WINDOW_MS`, `SUBMIT_RATE_LIMIT_MAX` (optional)
 - `JOBS_RATE_LIMIT_WINDOW_MS`, `JOBS_RATE_LIMIT_MAX` (optional)
 - `SHUTDOWN_TIMEOUT_MS` (optional)
+- `SUPABASE_ANON_KEY` (optional; accepted as fallback by `StorageManager` in `lib/storage.js` when `SUPABASE_SERVICE_ROLE_KEY` is not injected via constructor)
+
+Supabase Storage bucket name: `images` (hardcoded default in `lib/supabase.js` and `lib/storage.js`).
 
 Submission provider variables (`lib/submission.js`):
 - `N8N_WEBHOOK_URL` (optional; enables n8n provider)

@@ -4,7 +4,7 @@
 This service manages stock-photo assets and submission workflows.
 
 - Runtime: Node.js + Express
-- Storage: Supabase Storage (originals + thumbnails)
+- Storage: Supabase Storage (originals + thumbnails), bucket: `images`
 - Database: PostgreSQL via Prisma ORM
 
 ## Request Flow

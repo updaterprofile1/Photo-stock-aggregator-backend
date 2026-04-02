@@ -12,6 +12,12 @@ Use this file as lightweight durable memory for this repository.
 
 ## Entries
 - Date: 2026-04-02
+- Task: Verify tech stack overview against codebase; integrate confirmed new facts into docs
+- Files changed: docs/system-architecture.md, docs/deployment.md
+- Summary: Verified all tech stack overview claims against workspace files. Confirmed: Node.js/Express/Prisma, PostgreSQL, Supabase Storage (bucket `images`), n8n webhook jobs, Supabase Auth, Railway, helmet/cors/rate-limit. Not in workspace: frontend (React/Vite/Vercel), monorepo structure (already documented as target only). Discrepancy: overview lists SUPABASE_ANON_KEY as backend env var; server requires SERVICE_ROLE_KEY; ANON_KEY is a StorageManager fallback only. Added bucket name `images` to system-architecture.md. Added SUPABASE_ANON_KEY fallback note and bucket name to deployment.md env vars.
+- Tests: No tests run
+- Risks / Follow-ups: .env.example does not exist in workspace; consider creating one. SUPABASE_ANON_KEY vs SERVICE_ROLE_KEY distinction should be communicated to any frontend-calling-backend setups.
+- Date: 2026-04-02
 - Task: Todo verification and completion audit for Task #22
 - Files changed: No file edits
 - Summary: Verified implementation artifacts for schema, persistence helper, upload/submit integration, normalization, migration, and tests; all task todos confirmed complete and tracker updated.
