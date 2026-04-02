@@ -85,7 +85,16 @@ app.get('/health', async (_req, res) => {
 
 app.use('/api/upload', uploadLimiter, uploadRouter);
 app.use('/api/portfolio', portfolioRouter);
-app.use('/api/submit', submitRouter);
+
+// Submit: 20 submissions per 10 minutes per IP
+const submitLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Submit rate limit exceeded (20/10 min). Please slow down.' },
+});
+app.use('/api/submit', submitLimiter, submitRouter);
 app.use('/api/asset', assetRouter);
 
 /**
