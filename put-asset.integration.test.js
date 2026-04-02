@@ -139,6 +139,7 @@ test('PUT /api/assets/:assetId returns 400 for invalid lifecycleState', async ()
     description: null,
     keywords: [],
     contentOrigin: 'ai',
+    status: 'draft',
   };
 
   const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
@@ -157,6 +158,132 @@ test('PUT /api/assets/:assetId returns 400 for invalid lifecycleState', async ()
   assert.match(body.details.join(' '), /lifecycleState/i);
 });
 
+test('PUT /api/assets/:assetId returns 400 for invalid lifecycle transition draft -> distributed', async () => {
+  state.findFirstResult = {
+    id: 'asset-1',
+    portfolioId: 'portfolio-1',
+    title: 'Old title',
+    description: 'Old description',
+    keywords: ['one', 'two', 'three'],
+    contentOrigin: 'ai',
+    status: 'draft',
+  };
+
+  const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
+    body: JSON.stringify({
+      portfolioId: 'portfolio-1',
+      lifecycleState: 'distributed',
+      title: 'Valid title',
+    }),
+  });
+
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'Validation failed');
+  assert.match(body.details.join(' '), /invalid lifecycle transition/i);
+});
+
+test('PUT /api/assets/:assetId auto-promotes draft -> ready when metadata score threshold is met', async () => {
+  state.findFirstResult = {
+    id: 'asset-1',
+    portfolioId: 'portfolio-1',
+    title: 'Old title',
+    description: 'Old description',
+    keywords: ['one'],
+    contentOrigin: 'ai',
+    status: 'draft',
+  };
+
+  state.updateResult = {
+    id: 'asset-1',
+    fileUrl: 'https://cdn.example/image.jpg',
+    metadataScore: 77.7,
+    status: 'ready',
+  };
+
+  const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
+    body: JSON.stringify({
+      portfolioId: 'portfolio-1',
+      title: 'New title',
+    }),
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(state.lastUpdateArgs?.data?.status, 'ready');
+});
+
+test('PUT /api/assets/:assetId allows valid transition ready -> submitted', async () => {
+  state.findFirstResult = {
+    id: 'asset-1',
+    portfolioId: 'portfolio-1',
+    title: 'Complete title',
+    description: 'Complete description',
+    keywords: ['one', 'two', 'three'],
+    contentOrigin: 'ai',
+    status: 'ready',
+  };
+
+  state.updateResult = {
+    id: 'asset-1',
+    fileUrl: 'https://cdn.example/image.jpg',
+    metadataScore: 77.7,
+    status: 'submitted',
+  };
+
+  const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
+    body: JSON.stringify({
+      portfolioId: 'portfolio-1',
+      lifecycleState: 'submitted',
+      title: 'Complete title',
+      description: 'Complete description',
+      keywords: 'one,two,three,four',
+    }),
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(state.lastUpdateArgs?.data?.status, 'submitted');
+});
+
+test('PUT /api/assets/:assetId allows valid transition submitted -> accepted', async () => {
+  state.findFirstResult = {
+    id: 'asset-1',
+    portfolioId: 'portfolio-1',
+    title: 'Complete title',
+    description: 'Complete description',
+    keywords: ['one', 'two', 'three', 'four'],
+    contentOrigin: 'ai',
+    status: 'submitted',
+  };
+
+  state.updateResult = {
+    id: 'asset-1',
+    fileUrl: 'https://cdn.example/image.jpg',
+    metadataScore: 77.7,
+    status: 'accepted',
+  };
+
+  const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
+    body: JSON.stringify({
+      portfolioId: 'portfolio-1',
+      lifecycleState: 'accepted',
+      title: 'Complete title',
+      description: 'Complete description',
+      keywords: 'one,two,three,four',
+    }),
+  });
+
+  assert.equal(res.status, 200);
+  assert.equal(state.lastUpdateArgs?.data?.status, 'accepted');
+});
+
 test('PUT /api/assets/:assetId updates allowed fields and returns normalized response', async () => {
   state.findFirstResult = {
     id: 'asset-1',
@@ -165,6 +292,7 @@ test('PUT /api/assets/:assetId updates allowed fields and returns normalized res
     description: 'Old description',
     keywords: ['one'],
     contentOrigin: 'ai',
+    status: 'draft',
   };
 
   state.updateResult = {

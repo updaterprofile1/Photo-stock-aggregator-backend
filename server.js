@@ -15,6 +15,7 @@ const assetRouter = require('./routes/asset');
 const jobsRouter = require('./routes/jobs');
 const { getPrisma, closePrisma } = require('./lib/prisma');
 const { computeMetadataScore } = require('./lib/metadataScore');
+const { LifecycleError, resolveLifecycleTransition } = require('./lib/assetLifecycle');
 const { requireUserId } = require('./lib/requestUser');
 
 // ─── Validate required environment variables ──────────────────────────────────
@@ -127,6 +128,8 @@ app.put('/api/assets/:assetId', async (req, res, next) => {
   try {
     const { assetId } = req.params;
     const { portfolioId, title, description, keywords, contentOrigin, lifecycleState } = req.body;
+    const requestedLifecycleState =
+      lifecycleState !== undefined ? String(lifecycleState).trim() : undefined;
 
     if (!assetId || typeof assetId !== 'string' || !assetId.trim()) {
       return res.status(400).json({ error: 'assetId path parameter is required.' });
@@ -177,25 +180,8 @@ app.put('/api/assets/:assetId', async (req, res, next) => {
       }
     }
 
-    const allowedLifecycleStates = [
-      'draft',
-      'ready',
-      'submitted',
-      'accepted',
-      'rejected',
-      'distributed',
-      'original_deleted',
-      'thumbnail_only',
-    ];
-
-    if (lifecycleState !== undefined) {
-      if (!allowedLifecycleStates.includes(lifecycleState)) {
-        errors.push(
-          "lifecycleState must be one of 'draft', 'ready', 'submitted', 'accepted', 'rejected', 'distributed', 'original_deleted', or 'thumbnail_only'."
-        );
-      } else {
-        update.status = lifecycleState;
-      }
+    if (lifecycleState !== undefined && !requestedLifecycleState) {
+      errors.push('lifecycleState must be a non-empty string.');
     }
 
     if (errors.length) {
@@ -231,16 +217,43 @@ app.put('/api/assets/:assetId', async (req, res, next) => {
       contentOrigin: mergedContentOrigin,
     });
 
-    // Lifecycle promotion gate: score >= 50 required to advance status
+    let transition;
+    try {
+      transition = resolveLifecycleTransition(
+        asset,
+        { lifecycleState: requestedLifecycleState },
+        { autoPromoteReady: update.metadataScore >= 50 },
+      );
+    } catch (transitionErr) {
+      if (transitionErr instanceof LifecycleError) {
+        errors.push(transitionErr.message);
+      } else {
+        throw transitionErr;
+      }
+    }
+
+    if (errors.length) {
+      return res.status(400).json({ error: 'Validation failed', details: errors });
+    }
+
+    const nextLifecycleState = transition.nextState;
     const PROMOTION_STATES = new Set(['ready', 'submitted', 'accepted', 'distributed']);
-    if (lifecycleState !== undefined && PROMOTION_STATES.has(lifecycleState) && update.metadataScore < 50) {
+    if (PROMOTION_STATES.has(nextLifecycleState) && update.metadataScore < 50) {
       return res.status(400).json({
         error: 'Incomplete metadata',
         currentScore: update.metadataScore,
       });
     }
 
-    if (Object.keys(update).length === 1 && update.metadataScore !== undefined) {
+    if (transition.changed) {
+      update.status = nextLifecycleState;
+    }
+
+    if (
+      Object.keys(update).length === 1 &&
+      update.metadataScore !== undefined &&
+      requestedLifecycleState === undefined
+    ) {
       return res.status(400).json({ error: 'No valid updatable fields provided.' });
     }
 

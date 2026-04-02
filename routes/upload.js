@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { upload } = require('../lib/multer');
 const { validateImage } = require('../lib/imageValidator');
 const { storageManager, StorageError } = require('../lib/storage');
+const { resolveLifecycleTransition } = require('../lib/assetLifecycle');
 const { computeMetadataScore } = require('../lib/metadataScore');
 const { getPrisma } = require('../lib/prisma');
 
@@ -78,6 +79,12 @@ router.post('/', upload.single('image'), validateImage, async (req, res, next) =
     // ── 6. Score metadata ─────────────────────────────────────────────────
     const metadataScore = computeMetadataScore({ title, description, keywords: keywordsArray, contentOrigin });
 
+    const lifecycle = resolveLifecycleTransition(
+      { status: 'draft' },
+      { status: 'draft' },
+      { autoPromoteReady: false },
+    );
+
     // ── 7. Persist asset record ───────────────────────────────────────────
     // Map "non-ai" → Prisma enum value "non_ai" (the @map handles DB side)
     const prismaContentOrigin = contentOrigin === 'non-ai' ? 'non_ai' : 'ai';
@@ -90,7 +97,7 @@ router.post('/', upload.single('image'), validateImage, async (req, res, next) =
         description: description || null,
         keywords: keywordsArray,
         contentOrigin: prismaContentOrigin,
-        status: 'draft',
+        status: lifecycle.nextState,
         fileUrl: stored.originalUrl,
         thumbnailUrl: stored.thumbUrl,
         storageKey: stored.originalPath,

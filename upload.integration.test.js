@@ -31,6 +31,7 @@ const storagePath  = path.join(projectRoot, 'lib', 'storage.js');
 const state = {
   findFirstPortfolioResult: null,
   createAssetResult: null,
+  lastCreateArgs: null,
 };
 
 // ─── Stubs (registered before server.js loads) ────────────────────────────────
@@ -40,7 +41,10 @@ const prismaMock = {
     findFirst: async () => state.findFirstPortfolioResult,
   },
   asset: {
-    create: async () => state.createAssetResult,
+    create: async (args) => {
+      state.lastCreateArgs = args;
+      return state.createAssetResult;
+    },
   },
 };
 
@@ -116,6 +120,7 @@ test.after(async () => {
 test.beforeEach(() => {
   state.findFirstPortfolioResult = null;
   state.createAssetResult = null;
+  state.lastCreateArgs = null;
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -210,4 +215,6 @@ test('POST /api/upload → 201 on fully valid upload', async () => {
   assert.ok(body.fileUrl);
   assert.ok(body.thumbnailUrl);
   assert.ok(typeof body.metadataScore === 'number');
+
+  assert.equal(state.lastCreateArgs?.data?.status, 'draft');
 });

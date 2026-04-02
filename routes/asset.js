@@ -1,16 +1,14 @@
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
 const { computeMetadataScore } = require('../lib/metadataScore');
+const {
+  LifecycleError,
+  deriveReadyStateFromMetadata,
+  resolveLifecycleTransition,
+} = require('../lib/assetLifecycle');
 const { normalizeAsset } = require('../lib/normalizeAsset');
 
 const router = express.Router();
-
-function isMetadataReady({ title, description, keywords }) {
-  const hasTitle = typeof title === 'string' && title.trim().length > 0;
-  const hasDescription = typeof description === 'string' && description.trim().length > 0;
-  const keywordCount = Array.isArray(keywords) ? keywords.filter(Boolean).length : 0;
-  return hasTitle && hasDescription && keywordCount >= 3;
-}
 
 function parseKeywords(rawKeywords) {
   if (Array.isArray(rawKeywords)) {
@@ -50,6 +48,7 @@ router.patch('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { title, description, keywords, contentOrigin, retentionState, status } = req.body;
+    const requestedStatus = status !== undefined ? String(status).trim() : undefined;
     const prisma = getPrisma();
 
     const asset = await prisma.asset.findFirst({
@@ -91,25 +90,8 @@ router.patch('/:id', async (req, res, next) => {
       }
     }
 
-    if (status !== undefined) {
-      if (![
-        'draft',
-        'ready',
-        'submitted',
-        'accepted',
-        'rejected',
-        'distributed',
-        'original_deleted',
-        'thumbnail_only',
-      ].includes(status)) {
-        errors.push(
-          "status must be one of 'draft', 'ready', 'submitted', 'accepted', 'rejected', 'distributed', 'original_deleted', or 'thumbnail_only'."
-        );
-      } else if (status === 'ready' && !isMetadataReady({ title: mergedTitle, description: mergedDescription, keywords: mergedKeywords })) {
-        errors.push('Asset cannot be marked ready until title, description, and at least 3 keywords are provided.');
-      } else {
-        update.status = status;
-      }
+    if (status !== undefined && !requestedStatus) {
+      errors.push('status must be a non-empty string.');
     }
 
     if (title !== undefined) {
@@ -129,16 +111,36 @@ router.patch('/:id', async (req, res, next) => {
       }
     }
 
-    const readyMetadata = isMetadataReady({ title: mergedTitle, description: mergedDescription, keywords: mergedKeywords });
-    if (status === undefined && asset.status === 'draft' && readyMetadata) {
-      update.status = 'ready';
+    const readyMetadata = deriveReadyStateFromMetadata({
+      title: mergedTitle,
+      description: mergedDescription,
+      keywords: mergedKeywords,
+    });
+
+    let transition;
+    try {
+      transition = resolveLifecycleTransition(asset, { status: requestedStatus }, { autoPromoteReady: readyMetadata });
+    } catch (transitionErr) {
+      if (transitionErr instanceof LifecycleError) {
+        errors.push(transitionErr.message);
+      } else {
+        throw transitionErr;
+      }
+    }
+
+    if (requestedStatus === 'ready' && !readyMetadata) {
+      errors.push('Asset cannot be marked ready until title, description, and at least 3 keywords are provided.');
+    }
+
+    if (transition && transition.changed) {
+      update.status = transition.nextState;
     }
 
     if (errors.length) {
       return res.status(400).json({ error: 'Validation failed', details: errors });
     }
 
-    if (Object.keys(update).length === 0) {
+    if (Object.keys(update).length === 0 && requestedStatus === undefined) {
       return res.status(400).json({ error: 'No valid fields provided for update.' });
     }
 
