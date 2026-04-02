@@ -2,10 +2,11 @@
 
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 
 const { upload } = require('../lib/multer');
 const { validateImage } = require('../lib/imageValidator');
-const { uploadOriginal } = require('../lib/storage');
+const { storageManager, StorageError } = require('../lib/storage');
 const { computeMetadataScore } = require('../lib/metadataScore');
 const { getPrisma } = require('../lib/prisma');
 
@@ -53,16 +54,18 @@ router.post('/', upload.single('image'), validateImage, async (req, res, next) =
       return res.status(404).json({ error: `Portfolio '${portfolioId}' not found.` });
     }
 
-    // ── 3. Build a unique storage path ────────────────────────────────────
+    // ── 3. Prepare ids + storage key (portfolio/asset scoped) ─────────────
+    const assetId = crypto.randomUUID();
     const ext = path.extname(req.file.originalname).toLowerCase() || '.jpg';
-    const storageKey = `portfolios/${portfolioId}/${require('crypto').randomUUID()}${ext}`;
+    const filename = `${assetId}${ext}`;
+    const storageKey = `${portfolioId}/${assetId}/${filename}`;
 
-    // ── 4. Upload to Supabase Storage ─────────────────────────────────────
-    const { publicUrl, storageKey: savedStorageKey } = await uploadOriginal(
-      req.file.buffer,
-      storageKey,
-      req.file.mimetype
-    );
+    // ── 4. Upload original + thumbnail via storage abstraction ────────────
+    const stored = await storageManager.upload(req.file.buffer, storageKey, {
+      metadata: {
+        mimetype: req.file.mimetype,
+      },
+    });
 
     // ── 5. Parse keywords ─────────────────────────────────────────────────
     const keywordsArray = keywords
@@ -81,14 +84,17 @@ router.post('/', upload.single('image'), validateImage, async (req, res, next) =
 
     const asset = await prisma.asset.create({
       data: {
+        id: assetId,
         portfolioId,
         title,
         description: description || null,
         keywords: keywordsArray,
         contentOrigin: prismaContentOrigin,
         status: 'draft',
-        fileUrl: publicUrl,
-        storageKey: savedStorageKey,
+        fileUrl: stored.originalUrl,
+        thumbnailUrl: stored.thumbUrl,
+        storageKey: stored.originalPath,
+        thumbnailStorageKey: stored.thumbPath,
         metadataScore,
       },
     });
@@ -96,9 +102,16 @@ router.post('/', upload.single('image'), validateImage, async (req, res, next) =
     return res.status(201).json({
       assetId: asset.id,
       fileUrl: asset.fileUrl,
+      thumbnailUrl: asset.thumbnailUrl,
       metadataScore: asset.metadataScore,
     });
   } catch (err) {
+    if (err instanceof StorageError) {
+      return res.status(500).json({
+        error: 'Storage upload failed.',
+        details: [err.message],
+      });
+    }
     next(err);
   }
 });

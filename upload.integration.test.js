@@ -67,10 +67,16 @@ require.cache[require.resolve(supabasePath)] = {
 require.cache[require.resolve(storagePath)] = {
   id: storagePath, filename: storagePath, loaded: true,
   exports: {
-    uploadOriginal: async (_buf, key, _mime) => ({
-      publicUrl: `https://example.supabase.co/storage/v1/object/public/images/${key}`,
-      storageKey: key,
-    }),
+    storageManager: {
+      upload: async (_buf, key, _opts) => ({
+        originalUrl: `https://example.supabase.co/storage/v1/object/public/images/originals/${key}`,
+        thumbUrl: `https://example.supabase.co/storage/v1/object/public/images/thumbnails/${key}`,
+        key,
+        originalPath: `originals/${key}`,
+        thumbPath: `thumbnails/${key}`,
+      }),
+    },
+    StorageError: class StorageError extends Error {},
   },
 };
 
@@ -187,7 +193,8 @@ test('POST /api/upload → 201 on fully valid upload', async () => {
   state.findFirstPortfolioResult = { id: 'p-1', userId: 'user-1' };
   state.createAssetResult = {
     id: 'asset-abc',
-    fileUrl: 'https://example.supabase.co/storage/v1/object/public/images/portfolios/p-1/x.png',
+    fileUrl: 'https://example.supabase.co/storage/v1/object/public/images/originals/p-1/asset-abc/asset-abc.png',
+    thumbnailUrl: 'https://example.supabase.co/storage/v1/object/public/images/thumbnails/p-1/asset-abc/thumb_asset-abc.png',
     metadataScore: 30,
   };
 
@@ -201,5 +208,6 @@ test('POST /api/upload → 201 on fully valid upload', async () => {
   const body = await res.json();
   assert.equal(body.assetId, 'asset-abc');
   assert.ok(body.fileUrl);
+  assert.ok(body.thumbnailUrl);
   assert.ok(typeof body.metadataScore === 'number');
 });
