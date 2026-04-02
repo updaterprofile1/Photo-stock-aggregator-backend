@@ -45,9 +45,10 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // ─── Rate limiters ────────────────────────────────────────────────────────────
 
 // General API limiter – 100 requests per 15 minutes per IP
+// Override via GLOBAL_RATE_LIMIT_MAX / GLOBAL_RATE_LIMIT_WINDOW_MS env vars.
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: Number(process.env.GLOBAL_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: Number(process.env.GLOBAL_RATE_LIMIT_MAX) || 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
@@ -56,9 +57,10 @@ app.use('/api', globalLimiter);
 app.use('/api', requireUserId);
 
 // Strict upload limiter – 10 requests per minute per IP
+// Override via UPLOAD_RATE_LIMIT_MAX / UPLOAD_RATE_LIMIT_WINDOW_MS env vars.
 const uploadLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
+  windowMs: Number(process.env.UPLOAD_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
+  max: Number(process.env.UPLOAD_RATE_LIMIT_MAX) || 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Upload rate limit exceeded (10/min). Please slow down.' },
@@ -87,9 +89,10 @@ app.use('/api/upload', uploadLimiter, uploadRouter);
 app.use('/api/portfolio', portfolioRouter);
 
 // Submit: 20 submissions per 10 minutes per IP
+// Override via SUBMIT_RATE_LIMIT_MAX / SUBMIT_RATE_LIMIT_WINDOW_MS env vars.
 const submitLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 20,
+  windowMs: Number(process.env.SUBMIT_RATE_LIMIT_WINDOW_MS) || 10 * 60 * 1000,
+  max: Number(process.env.SUBMIT_RATE_LIMIT_MAX) || 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Submit rate limit exceeded (20/10 min). Please slow down.' },

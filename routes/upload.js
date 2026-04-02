@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 
 const { upload } = require('../lib/multer');
+const { validateImage } = require('../lib/imageValidator');
 const { uploadOriginal } = require('../lib/storage');
 const { computeMetadataScore } = require('../lib/metadataScore');
 const { getPrisma } = require('../lib/prisma');
@@ -14,7 +15,7 @@ const router = express.Router();
  * POST /api/upload
  *
  * Multipart/form-data fields:
- *   image         (file, required)   — jpg / png / webp, max 10 MB
+ *   image         (file, required)   — jpg / png / webp, max 10 MB, min 512×512 px
  *   portfolioId   (string, required)
  *   contentOrigin (string, required) — "ai" | "non-ai"
  *   title         (string, optional)
@@ -24,7 +25,7 @@ const router = express.Router();
  * Returns:
  *   201 { assetId, fileUrl, metadataScore }
  */
-router.post('/', upload.single('image'), async (req, res, next) => {
+router.post('/', upload.single('image'), validateImage, async (req, res, next) => {
   try {
     // ── 1. Validate required body fields ──────────────────────────────────
     const { portfolioId, contentOrigin, title = '', description = '', keywords = '' } = req.body;
