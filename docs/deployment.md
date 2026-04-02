@@ -109,3 +109,28 @@ Estimated totals: $80–300/mo. Provides cost reduction with lower operational r
 | 100 imgs | ~15TB → €90/mo | ~500GB → ~€3/mo | ~30x |
 
 Thumbnail-only model shifts the dominant cost from storage/egress to compute and workflow execution.
+
+---
+
+## Target Monorepo Deployment (Not Yet Implemented)
+
+> This section describes planned deployment configuration for the future monorepo structure. Current deployment is backend-only on Railway.
+
+### Railway — Backend Service
+- Root Directory: `/apps/backend`
+- Watch paths: `/apps/backend/**`, `/packages/shared/**`
+- Environment variables (backend only):
+  - `DATABASE_URL` (required)
+  - `SUPABASE_URL` (required)
+  - `SUPABASE_SERVICE_ROLE_KEY` (required)
+  - `PORT=3000`
+
+### Vercel — Frontend Project
+- Root Directory: `apps/frontend`
+- Environment variables (frontend only):
+  - `VITE_RAILWAY_BACKEND_URL` — Railway backend public URL
+  - Public Supabase keys only (anon key, project URL)
+  - No service role key or database URL
+
+### Env Var Isolation Rule
+Backend secrets (`SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`) must never appear in Vercel or any frontend environment. Frontend communicates with the backend only via `VITE_RAILWAY_BACKEND_URL`.

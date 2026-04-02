@@ -148,3 +148,29 @@ uploaded_temp → distributed_confirmed → thumbnail_retained → original_dele
 A safer intermediate approach: retain the original for a 7–30 day buffer after confirmed distribution before deletion. This provides a rollback window for disputes, resubmissions, and failed confirmations.
 
 Delete original only after buffer window elapses **and** none of the following flags are set: failed, disputed, pending review, flagged for new partner.
+
+---
+
+## Target Monorepo Structure (Not Yet Implemented)
+
+> This section describes the planned repository reorganization. The current repo is backend-only.
+
+```
+photo-stock-aggregator/
+├─ apps/
+│  ├─ frontend/          # React/Vite/Tailwind PWA
+│  └─ backend/           # Node/Express/Prisma API (current repo)
+├─ packages/
+│  └─ shared/            # Safe shared types/constants/validation only
+│     ├─ types/
+│     ├─ constants/
+│     └─ validation/
+└─ project-docs/         # Architecture, workflow, agent docs
+```
+
+### Security Boundary Rules
+- Frontend (`apps/frontend`) must never import backend code, database modules, or secrets.
+- `packages/shared` is limited to safe reusable items only: TypeScript types (e.g. `Asset`, `JobStatus`), lifecycle state constants, validation schemas.
+- No runtime server code, credentials, or database access in `packages/shared`.
+- Backend secrets remain in Railway environment variables only.
+- Frontend accesses backend exclusively via HTTP requests to the Railway backend URL.

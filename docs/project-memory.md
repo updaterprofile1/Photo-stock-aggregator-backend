@@ -45,3 +45,10 @@ Use this file as lightweight durable memory for this repository.
 - Summary: Added project-facing documentation for architecture, API contract, and deployment; added a README documentation index; added system-wide and repo-wide rule to update docs when setup/API/schema/architecture/deployment behavior changes.
 - Tests: No tests run
 - Risks / Follow-ups: README currently contains some legacy examples that may still diverge from runtime behavior; future pass can reconcile all sections against current routes/auth model.
+
+- Date: 2026-04-02
+- Task: Integrate monorepo structure and deployment plan into informational docs
+- Files changed: docs/system-architecture.md, docs/deployment.md
+- Summary: Added "Target Monorepo Structure" section to system-architecture.md with planned folder layout and security boundary rules (shared package scope limits, secret isolation). Added "Target Monorepo Deployment" section to deployment.md with Railway and Vercel root directory config, watch paths, and env var isolation rules. Migration checklist, verification steps, and agent-rules references excluded as out of scope. All content marked as not yet implemented.
+- Tests: No tests run
+- Risks / Follow-ups: Monorepo migration has not started; deployment URLs, watch path config, and shared package contents are still TBD.
