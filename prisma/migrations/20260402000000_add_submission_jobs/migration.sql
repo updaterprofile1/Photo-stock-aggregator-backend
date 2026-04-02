@@ -1,83 +1,26 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
+-- BASELINE MIGRATION — intentionally empty SQL
+--
+-- The Supabase database already contains the following objects (created
+-- before Prisma Migrate was introduced to this project):
+--
+--   Enums  : content_origin, asset_status, retention_state
+--   Tables : users, portfolios, assets
+--
+-- Running CREATE TYPE / CREATE TABLE against those existing objects would
+-- fail immediately with "already exists" errors.
+--
+-- Strategy: this migration carries no DDL so that `prisma migrate deploy`
+-- records it as applied in _prisma_migrations without touching the DB.
+-- The actual new objects (job_status enum + submission_jobs table) are
+-- created by the next migration:
+--   20260402000001_add_submission_jobs
+--
+-- Full reference DDL (for documentation only — NOT executed):
+--
+-- CREATE TYPE "content_origin" AS ENUM ('ai','non-ai');
+-- CREATE TYPE "asset_status"   AS ENUM ('draft','ready','submitted','accepted','rejected','distributed','original_deleted','thumbnail_only');
+-- CREATE TYPE "retention_state" AS ENUM ('active','deleted','archived');
+-- CREATE TABLE "users"      ( "id" UUID PRIMARY KEY, "email" TEXT UNIQUE NOT NULL, "created_at" TIMESTAMPTZ, "updated_at" TIMESTAMPTZ );
+-- CREATE TABLE "portfolios" ( "id" UUID PRIMARY KEY, "user_id" UUID REFERENCES users ON DELETE CASCADE, "name" TEXT NOT NULL, "created_at" TIMESTAMPTZ, "updated_at" TIMESTAMPTZ );
+-- CREATE TABLE "assets"     ( "id" UUID PRIMARY KEY, "portfolio_id" UUID REFERENCES portfolios ON DELETE CASCADE, ... );
 
--- CreateEnum
-CREATE TYPE "content_origin" AS ENUM ('ai', 'non-ai');
-
--- CreateEnum
-CREATE TYPE "asset_status" AS ENUM ('draft', 'ready', 'submitted', 'accepted', 'rejected', 'distributed', 'original_deleted', 'thumbnail_only');
-
--- CreateEnum
-CREATE TYPE "retention_state" AS ENUM ('active', 'deleted', 'archived');
-
--- CreateEnum
-CREATE TYPE "job_status" AS ENUM ('queued', 'uploading', 'submitted', 'accepted', 'rejected', 'distributed');
-
--- CreateTable
-CREATE TABLE "users" (
-    "id" UUID NOT NULL,
-    "email" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "portfolios" (
-    "id" UUID NOT NULL,
-    "user_id" UUID NOT NULL,
-    "name" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "portfolios_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "assets" (
-    "id" UUID NOT NULL,
-    "portfolio_id" UUID NOT NULL,
-    "title" TEXT NOT NULL,
-    "description" TEXT,
-    "keywords" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "content_origin" "content_origin" NOT NULL,
-    "status" "asset_status" NOT NULL DEFAULT 'draft',
-    "file_url" TEXT NOT NULL,
-    "storage_key" TEXT,
-    "thumbnail_url" TEXT,
-    "thumbnail_storage_key" TEXT,
-    "retention_state" "retention_state" NOT NULL DEFAULT 'active',
-    "original_deleted_at" TIMESTAMP(3),
-    "metadata_score" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "assets_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "submission_jobs" (
-    "id" UUID NOT NULL,
-    "user_id" UUID NOT NULL,
-    "site_slug" TEXT NOT NULL,
-    "status" "job_status" NOT NULL DEFAULT 'queued',
-    "asset_ids" TEXT[],
-    "provider" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "submission_jobs_pkey" PRIMARY KEY ("id")
-);
-
--- CreateIndex
-CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
-
--- AddForeignKey
-ALTER TABLE "portfolios" ADD CONSTRAINT "portfolios_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "assets" ADD CONSTRAINT "assets_portfolio_id_fkey" FOREIGN KEY ("portfolio_id") REFERENCES "portfolios"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "submission_jobs" ADD CONSTRAINT "submission_jobs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
