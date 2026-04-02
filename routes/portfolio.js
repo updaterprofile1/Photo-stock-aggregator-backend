@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
-const { getPublicUrl } = require('../lib/storage');
+const { normalizeAsset } = require('../lib/normalizeAsset');
 
 const router = express.Router();
 
@@ -39,36 +39,13 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ error: `Portfolio '${id}' not found.` });
     }
 
-    // Normalise the contentOrigin enum back to the wire format ("non-ai" vs "ai")
     const normalised = {
       id: portfolio.id,
       userId: portfolio.userId,
       name: portfolio.name,
       createdAt: portfolio.createdAt,
       updatedAt: portfolio.updatedAt,
-      assets: portfolio.assets.map((a) => {
-        const contentOrigin = a.contentOrigin === 'non_ai' ? 'non-ai' : a.contentOrigin;
-        const fileUrl = a.storageKey ? getPublicUrl(a.storageKey) : a.fileUrl;
-        const thumbnailUrl = a.thumbnailStorageKey
-          ? getPublicUrl(a.thumbnailStorageKey)
-          : a.thumbnailUrl || fileUrl;
-
-        return {
-          id: a.id,
-          title: a.title,
-          description: a.description,
-          keywords: a.keywords,
-          contentOrigin,
-          status: a.status,
-          fileUrl,
-          thumbnailUrl,
-          retentionState: a.retentionState,
-          originalDeletedAt: a.originalDeletedAt,
-          metadataScore: a.metadataScore,
-          createdAt: a.createdAt,
-          updatedAt: a.updatedAt,
-        };
-      }),
+      assets: portfolio.assets.map((a) => normalizeAsset(a)),
     };
 
     return res.json(normalised);

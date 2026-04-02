@@ -1,34 +1,9 @@
 const express = require('express');
 const { getPrisma } = require('../lib/prisma');
-const { getPublicUrl } = require('../lib/storage');
 const { computeMetadataScore } = require('../lib/metadataScore');
+const { normalizeAsset } = require('../lib/normalizeAsset');
 
 const router = express.Router();
-
-function normalizeAsset(asset) {
-  const contentOrigin = asset.contentOrigin === 'non_ai' ? 'non-ai' : asset.contentOrigin;
-  const fileUrl = asset.storageKey ? getPublicUrl(asset.storageKey) : asset.fileUrl;
-  const thumbnailUrl = asset.thumbnailStorageKey
-    ? getPublicUrl(asset.thumbnailStorageKey)
-    : asset.thumbnailUrl || fileUrl;
-
-  return {
-    id: asset.id,
-    portfolioId: asset.portfolioId,
-    title: asset.title,
-    description: asset.description,
-    keywords: asset.keywords,
-    contentOrigin,
-    status: asset.status,
-    fileUrl,
-    thumbnailUrl,
-    retentionState: asset.retentionState,
-    originalDeletedAt: asset.originalDeletedAt,
-    metadataScore: asset.metadataScore,
-    createdAt: asset.createdAt,
-    updatedAt: asset.updatedAt,
-  };
-}
 
 function isMetadataReady({ title, description, keywords }) {
   const hasTitle = typeof title === 'string' && title.trim().length > 0;
