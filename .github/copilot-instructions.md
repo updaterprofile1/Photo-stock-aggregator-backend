@@ -36,6 +36,8 @@ Use this file for all future chats in this repo.
   - why the change is safe
 - Keep scope tight and avoid unrelated formatting churn.
 - For test changes, prefer focused integration tests matching current node:test usage.
+- When changes affect setup, API behavior, schema/data model, architecture, or deployment, update `README.md` and/or relevant `docs/*.md` in the same task.
+- Skip documentation edits for internal refactors that do not change external behavior.
 
 ## Final Step Reporting Rule
 - At the end of every task, provide a final report that includes:

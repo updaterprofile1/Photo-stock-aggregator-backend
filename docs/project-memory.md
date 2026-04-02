@@ -24,3 +24,10 @@ Use this file as lightweight durable memory for this repository.
 - Summary: Added safety-first rules to require todo lists for multi-step/risky tasks, skip them for straightforward one-step tasks, and ask clarifying questions only when ambiguity impacts correctness/safety/scope.
 - Tests: No tests run
 - Risks / Follow-ups: Optional future follow-up is hook-based enforcement if deterministic gating is needed.
+
+- Date: 2026-04-02
+- Task: Create architecture/api/deployment docs and add documentation-sync rule
+- Files changed: docs/system-architecture.md; docs/api-contract.md; docs/deployment.md; README.md; .github/copilot-instructions.md; /home/codespace/.vscode-remote/data/User/prompts/global-engineering.instructions.md
+- Summary: Added project-facing documentation for architecture, API contract, and deployment; added a README documentation index; added system-wide and repo-wide rule to update docs when setup/API/schema/architecture/deployment behavior changes.
+- Tests: No tests run
+- Risks / Follow-ups: README currently contains some legacy examples that may still diverge from runtime behavior; future pass can reconcile all sections against current routes/auth model.

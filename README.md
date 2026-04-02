@@ -7,6 +7,7 @@ A production-ready Express + Prisma + PostgreSQL API for managing stock photo po
 ## Table of Contents
 
 - [Architecture](#architecture)
+- [Documentation Index](#documentation-index)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Environment Variables](#environment-variables)
@@ -39,6 +40,13 @@ Express (server.js)
   ├── PUT  /api/assets/:assetId
   └── GET  /health             ─► DB ping
 ```
+
+## Documentation Index
+
+- [System Architecture](docs/system-architecture.md)
+- [API Contract](docs/api-contract.md)
+- [Deployment Guide](docs/deployment.md)
+- [Project Memory Log](docs/project-memory.md)
 
 ---
 
