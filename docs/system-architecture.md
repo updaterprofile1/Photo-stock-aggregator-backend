@@ -62,3 +62,58 @@ Defined in `prisma/schema.prisma`:
 - `cors` with configurable origin
 - route-specific and global `express-rate-limit`
 - auth required for all `/api/*` routes
+
+---
+
+## Target Architecture Direction (Not Yet Implemented)
+
+> This section describes the intended product direction, not the current implementation state.
+
+### Thumbnail-Only Durable Record Model
+The target model avoids permanent original storage costs:
+1. Upload original to temporary storage.
+2. Generate thumbnail and metadata record.
+3. Submit original to partner sites.
+4. Confirm downstream success; store partner-side IDs and earnings linkage.
+5. Keep only minimal durable records.
+6. Delete original after policy conditions are met.
+
+**Minimal durable records per asset:**
+- thumbnail
+- metadata
+- submission history
+- external site IDs
+- payout/accounting linkage
+- lifecycle state
+
+### Planned Architecture Abstraction Layers
+- **Storage abstraction** — one module for original upload, thumbnail generation/lookup, original deletion, thumbnail retention.
+- **Submission abstraction** — neutral layer hiding n8n, direct APIs, FTP, CSV export, custom workers.
+- **Site rules data** — configurable per-site: AI acceptance, disclosure requirement, bulk mode, active status.
+- **Event abstraction** — emit `asset_uploaded`, `submission_failed`, `asset_accepted`, `original_deleted`.
+
+### Planned Lifecycle States (expanded)
+Current implemented states: `draft`, `ready`, `submitted`, `accepted`, `rejected`, `distributed`, `original_deleted`, `thumbnail_only`.
+
+Target additions:
+- `original_deleted` — original file removed from storage after confirmed distribution.
+- `thumbnail_only` — durable record retained; no original available.
+
+### Planned Data Model Additions
+Beyond the current `Asset`, `Portfolio`, `SubmissionJob` tables:
+- `asset_files` — separate original/thumbnail file records.
+- `asset_external_records` — partner site IDs per asset.
+- `notification_events` — user-facing event log.
+- `activity_logs` — internal audit trail.
+- `site_rules` — configurable ruleset per partner site.
+- `site_accounts` — per-user partner site credentials/linkage.
+
+### Supported Partner Sites (v1 Target)
+
+| Site | AI accepted | Bulk mode | Notes |
+|------|-------------|-----------|-------|
+| Adobe Stock | Yes, with disclosure | csv_batch | Large marketplace |
+| Dreamstime | Yes, with conditions | ftp_batch | Batch candidate |
+| 123RF | Yes, with rules | ftp_batch | Batch candidate |
+
+Site rules are intended to be stored as data, not hardcoded.

@@ -112,3 +112,39 @@ Unauthenticated requests return `401`.
 - 200 response fields:
   - `jobId`, `status`, `siteSlug`, `assetIds`, `createdAt`, `updatedAt`
 - 404 for both not found and non-owner access
+
+---
+
+## Path Naming Note
+Current asset endpoints use the singular path `/api/asset/:id`. The target spec uses plural `/api/assets/:id`. These are inconsistent — the singular form is what is implemented today. Any future migration to plural paths is a breaking change.
+
+---
+
+## Planned Endpoints (Not Yet Implemented)
+
+> These endpoints are part of the target product direction. None are currently implemented.
+
+### DELETE /api/assets/:id
+- Deletes asset record and associated storage objects.
+- Requires ownership check.
+- Expected responses: 204 success, 404 not found.
+
+### GET /api/jobs
+- List all submission jobs for the authenticated user.
+- Expected 200 response: array of job objects (`jobId`, `status`, `siteSlug`, `assetIds`, `createdAt`, `updatedAt`).
+
+### POST /api/jobs/:id/retry
+- Retry a failed submission job.
+- Expected responses: 202 accepted, 404 not found, 409 job not in retryable state.
+
+### GET /api/sites
+- Returns all configured partner sites and their rules (AI acceptance, bulk mode, active status).
+- Expected 200 response: array of site rule objects.
+
+### GET /api/assets/:id/eligible-sites
+- Returns which partner sites the given asset is eligible for based on site rules and asset metadata.
+- Expected 200 response: array of eligible site slugs with eligibility reasons.
+
+### GET /api/assets/:id/history
+- Returns the full submission history for an asset.
+- Expected 200 response: array of submission history entries (site, status, timestamps, external IDs).

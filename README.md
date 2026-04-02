@@ -1,6 +1,8 @@
 # photo-stock-aggregator
 
-A production-ready Express + Prisma + PostgreSQL API for managing stock photo portfolios. Images are uploaded to **Supabase Storage**; metadata is stored in **PostgreSQL** via Prisma ORM.
+A production-ready Express + Prisma + PostgreSQL API for managing stock photo assets and submission workflows. Images are uploaded to **Supabase Storage**; metadata is stored in **PostgreSQL** via Prisma ORM.
+
+The target product model is thumbnail-only durable record storage: originals are uploaded temporarily, distributed to partner marketplaces, and deleted once delivery is confirmed. Only thumbnails, metadata, submission history, and partner records are retained long-term.
 
 ---
 

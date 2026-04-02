@@ -26,6 +26,13 @@ Use this file as lightweight durable memory for this repository.
 - Risks / Follow-ups: Optional future follow-up is hook-based enforcement if deterministic gating is needed.
 
 - Date: 2026-04-02
+- Task: Integrate Send It-Stock framework spec into informational docs
+- Files changed: docs/system-architecture.md, docs/api-contract.md, README.md
+- Summary: Added "Target Architecture Direction" section to system-architecture.md (thumbnail-only model, abstraction layers, data model additions, partner sites table). Added "Planned Endpoints" section and path-naming note to api-contract.md. Updated README.md intro paragraph to reflect thumbnail-only model goal. All additions clearly marked as target direction, not current implementation. Build priority and roadmap sections were intentionally excluded.
+- Tests: No tests run
+- Risks / Follow-ups: Path naming inconsistency (`/api/asset` vs `/api/assets`) is documented in api-contract.md; resolving it is a future breaking change.
+
+- Date: 2026-04-02
 - Task: Create architecture/api/deployment docs and add documentation-sync rule
 - Files changed: docs/system-architecture.md; docs/api-contract.md; docs/deployment.md; README.md; .github/copilot-instructions.md; /home/codespace/.vscode-remote/data/User/prompts/global-engineering.instructions.md
 - Summary: Added project-facing documentation for architecture, API contract, and deployment; added a README documentation index; added system-wide and repo-wide rule to update docs when setup/API/schema/architecture/deployment behavior changes.
