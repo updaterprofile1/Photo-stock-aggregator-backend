@@ -23,6 +23,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ||
 
 const projectRoot = __dirname;
 const prismaPath = path.join(projectRoot, 'lib', 'prisma.js');
+const supabasePath = path.join(projectRoot, 'lib', 'supabase.js');
 
 // ─── Prisma mock state ────────────────────────────────────────────────────────
 const state = {
@@ -52,6 +53,24 @@ require.cache[require.resolve(prismaPath)] = {
   filename: prismaPath,
   loaded: true,
   exports: { getPrisma: () => prismaMock, closePrisma: async () => {} },
+};
+
+// Stub supabase auth – prevents live HTTP calls; 'valid-token' resolves to user-1
+require.cache[require.resolve(supabasePath)] = {
+  id: supabasePath,
+  filename: supabasePath,
+  loaded: true,
+  exports: {
+    supabase: {
+      auth: {
+        getUser: async (token) =>
+          token === 'valid-token'
+            ? { data: { user: { id: 'user-1' } }, error: null }
+            : { data: { user: null }, error: new Error('Invalid token') },
+      },
+    },
+    BUCKET: 'images',
+  },
 };
 
 const app = require('./server');
@@ -86,10 +105,10 @@ test.beforeEach(() => {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function post(path, body, userId = 'user-1') {
+function post(path, body, token = 'valid-token') {
   return fetch(`${baseUrl}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
     body: JSON.stringify(body),
   });
 }
@@ -127,7 +146,7 @@ test('POST /api/submit – unknown siteSlug → 400', async () => {
   assert.match(body.error, /unknown site/i);
 });
 
-test('POST /api/submit – missing x-user-id header → 401', async () => {
+test('POST /api/submit – missing Authorization header → 401', async () => {
   const res = await fetch(`${baseUrl}/api/submit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

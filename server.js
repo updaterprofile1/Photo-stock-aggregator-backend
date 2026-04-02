@@ -33,7 +33,7 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? false : '*'),
     methods: ['GET', 'POST', 'PUT'],
   }),
 );
@@ -78,7 +78,7 @@ app.get('/health', async (_req, res) => {
     await prisma.$queryRaw`SELECT 1`;
     return res.json({ status: 'ok', db: 'connected', uptime: process.uptime() });
   } catch (err) {
-    const message = process.env.NODE_ENV === 'production' ? 'Database unreachable.' : err.message;
+    const message = 'Database unreachable.';
     return res.status(503).json({ status: 'error', db: 'unreachable', message });
   }
 });

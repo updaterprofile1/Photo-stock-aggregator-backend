@@ -12,6 +12,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ||
 const projectRoot = __dirname;
 const prismaPath = path.join(projectRoot, 'lib', 'prisma.js');
 const metadataPath = path.join(projectRoot, 'lib', 'metadataScore.js');
+const supabasePath = path.join(projectRoot, 'lib', 'supabase.js');
 
 const state = {
   findFirstResult: null,
@@ -55,6 +56,24 @@ require.cache[require.resolve(metadataPath)] = {
   exports: { computeMetadataScore: computeMetadataScoreMock },
 };
 
+// Stub supabase auth – prevents live HTTP calls; 'valid-token' resolves to user-1
+require.cache[require.resolve(supabasePath)] = {
+  id: supabasePath,
+  filename: supabasePath,
+  loaded: true,
+  exports: {
+    supabase: {
+      auth: {
+        getUser: async (token) =>
+          token === 'valid-token'
+            ? { data: { user: { id: 'user-1' } }, error: null }
+            : { data: { user: null }, error: new Error('Invalid token') },
+      },
+    },
+    BUCKET: 'images',
+  },
+};
+
 const app = require('./server');
 
 let server;
@@ -86,7 +105,7 @@ test.beforeEach(() => {
 test('PUT /api/assets/:assetId returns 400 when portfolioId is missing', async () => {
   const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'x-user-id': 'user-1' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
     body: JSON.stringify({ title: 'New title' }),
   });
 
@@ -100,7 +119,7 @@ test('PUT /api/assets/:assetId returns 404 when asset does not exist for portfol
 
   const res = await fetch(`${baseUrl}/api/assets/asset-404`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'x-user-id': 'user-1' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
     body: JSON.stringify({ portfolioId: 'portfolio-1', title: 'New title' }),
   });
 
@@ -124,7 +143,7 @@ test('PUT /api/assets/:assetId returns 400 for invalid lifecycleState', async ()
 
   const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'x-user-id': 'user-1' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
     body: JSON.stringify({
       portfolioId: 'portfolio-1',
       lifecycleState: 'invalid-state',
@@ -157,7 +176,7 @@ test('PUT /api/assets/:assetId updates allowed fields and returns normalized res
 
   const res = await fetch(`${baseUrl}/api/assets/asset-1`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'x-user-id': 'user-1' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer valid-token' },
     body: JSON.stringify({
       portfolioId: 'portfolio-1',
       title: 'New title',
